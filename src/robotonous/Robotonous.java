@@ -2,7 +2,6 @@ package robotonous;
 
 import static de.tudresden.inf.lat.jsexp.SexpFactory.newAtomicSexp;
 import static de.tudresden.inf.lat.jsexp.SexpFactory.newNonAtomicSexp;
-import static de.tudresden.inf.lat.jsexp.SexpFactory.parse;
 import static java.awt.event.InputEvent.getMaskForButton;
 import static java.awt.event.KeyEvent.*;
 import static java.awt.event.MouseEvent.BUTTON1;
