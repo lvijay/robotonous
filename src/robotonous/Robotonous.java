@@ -178,13 +178,13 @@ public class Robotonous {
     /*
      * Handlers
      */
-        List<RobotAction> handle(Sexp sexp, CommandHandler parent);
     static private interface CommandHandler {
+        List<RobotAction> handle(Sexp sexp, CommandHandler defaultHandler);
     }
 
     static private final class DelayHandler implements CommandHandler {
         @Override @SuppressWarnings("unused")
-        public List<RobotAction> handle(Sexp sexp, CommandHandler parent) {
+        public List<RobotAction> handle(Sexp sexp, CommandHandler defaultHandler) {
             var delaySexp = car(sexp);
             int delayMs = Integer.parseInt(delaySexp.toString());
 
@@ -216,7 +216,7 @@ public class Robotonous {
                 entry(":pipe",        new int[] { VK_SHIFT, VK_BACK_SLASH }));
 
         @Override
-        public List<RobotAction> handle(Sexp text, CommandHandler parent) {
+        public List<RobotAction> handle(Sexp text, CommandHandler defaultHandler) {
             var actions = new ArrayList<RobotAction>(text.getLength());
 
             if (text.isAtomic()) {
@@ -241,14 +241,14 @@ public class Robotonous {
                         actions.add(new KeyPressAction(keycode));
 
                         try {
-                            var subTextTyping = handle(cdr(el), parent);
+                            var subTextTyping = handle(cdr(el), defaultHandler);
 
                             actions.addAll(subTextTyping);
                         } finally {
                             actions.add(new KeyReleaseAction(keycode));
                         }
                     } else {
-                        actions.addAll(parent.handle(el, parent));
+                        actions.addAll(defaultHandler.handle(el, defaultHandler));
                     }
                 }
             }
@@ -364,9 +364,9 @@ public class Robotonous {
      */
     static private final class LineHandler extends TextHandler {
         @Override
-        public List<RobotAction> handle(Sexp text, CommandHandler parent) {
-            var typing = super.handle(text, parent);
-            var newlines = super.handle(newAtomicSexp("\n"), parent);
+        public List<RobotAction> handle(Sexp text, CommandHandler defaultHandler) {
+            var typing = super.handle(text, defaultHandler);
+            var newlines = super.handle(newAtomicSexp("\n"), defaultHandler);
 
             var line = new ArrayList<RobotAction>(typing.size() + newlines.size());
 
@@ -380,7 +380,7 @@ public class Robotonous {
     static private final class MouseMoveHandler implements CommandHandler {
         @SuppressWarnings("unused")
         @Override
-        public List<RobotAction> handle(Sexp sexp, CommandHandler parent) {
+        public List<RobotAction> handle(Sexp sexp, CommandHandler defaultHandler) {
             var xposSexp = car(sexp);
             var yposSexp = car(cdr(sexp));
             int xpos = Integer.parseInt(xposSexp.toString());
@@ -397,7 +397,7 @@ public class Robotonous {
                 ":middle", getMaskForButton(BUTTON2));
 
         @Override
-        public List<RobotAction> handle(Sexp clicks, CommandHandler parent) {
+        public List<RobotAction> handle(Sexp clicks, CommandHandler defaultHandler) {
             var actions = new ArrayList<RobotAction>(clicks.getLength());
 
             for (Sexp el : clicks) {
@@ -424,14 +424,14 @@ public class Robotonous {
                         actions.add(new MousePressAction(button));
 
                         try {
-                            var subClicks = handle(cdr(el), parent);
+                            var subClicks = handle(cdr(el), defaultHandler);
 
                             actions.addAll(subClicks);
                         } finally {
                             actions.add(new MouseReleaseAction(button));
                         }
                     } else {
-                        actions.addAll(parent.handle(el, parent));
+                        actions.addAll(defaultHandler.handle(el, defaultHandler));
                     }
                 }
             }
