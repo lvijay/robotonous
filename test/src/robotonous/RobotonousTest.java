@@ -1,6 +1,5 @@
 package robotonous;
 
-import static de.tudresden.inf.lat.jsexp.SexpFactory.parse;
 import static java.awt.event.InputEvent.BUTTON1_DOWN_MASK;
 import static java.awt.event.InputEvent.BUTTON2_DOWN_MASK;
 import static robotonous.Robotonous.toActions;
@@ -18,65 +17,68 @@ import robotonous.Robotonous.RobotAction;
 import robotonous.test.FakeRobot;
 import robotonous.test.FakeRobot.Action;
 
-public class RobotonousTest {
-    public static void main(String[] args)
+public final class RobotonousTest {
+    static public void main(String[] args)
             throws IOException, SexpParserException, AWTException {
         {
-            var robot = new robotonous.test.FakeRobot();
-            var test = new RobotonousTest(robot);
             var expression = parseSexp("(:mouseclick ($left ($right)))");
-            var commands = toActions(expression);
-            List<Action> expected = List.of(
-                    newAction("mousePress", BUTTON1_DOWN_MASK),
-                    newAction("mousePress", BUTTON2_DOWN_MASK),
-                    newAction("mouseRelease", BUTTON1_DOWN_MASK),
-                    newAction("mouseRelease", BUTTON2_DOWN_MASK));
 
-            test.test("simultaneous mouse clicks", commands, expected);
+            new RobotonousTest(new FakeRobot())
+                    .test("simultaneous mouse clicks",
+                            toActions(expression),
+                            newAction("mousePress", BUTTON1_DOWN_MASK),
+                            newAction("mousePress", BUTTON2_DOWN_MASK),
+                            newAction("mouseRelease", BUTTON1_DOWN_MASK),
+                            newAction("mouseRelease", BUTTON2_DOWN_MASK));
         }
 
         {
-            var robot = new robotonous.test.FakeRobot();
-            var test = new RobotonousTest(robot);
-            var commands = toActions(parseSexp("(:type abCD)"));
-            List<Action> expected = List.of(
-                    newAction("keyPress",   KeyEvent.VK_A),
-                    newAction("keyRelease", KeyEvent.VK_A),
-                    newAction("keyPress",   KeyEvent.VK_B),
-                    newAction("keyRelease", KeyEvent.VK_B),
-                    newAction("keyPress",   KeyEvent.VK_SHIFT),
-                    newAction("keyPress",   KeyEvent.VK_C),
-                    newAction("keyRelease", KeyEvent.VK_C),
-                    newAction("keyRelease", KeyEvent.VK_SHIFT),
-                    newAction("keyPress",   KeyEvent.VK_SHIFT),
-                    newAction("keyPress",   KeyEvent.VK_D),
-                    newAction("keyRelease", KeyEvent.VK_D),
-                    newAction("keyRelease", KeyEvent.VK_SHIFT));
-
-            test.test("type some alphabets",
-                    commands, expected);
+            new RobotonousTest(new FakeRobot())
+                    .test("type some alphabets",
+                            toActions(parseSexp("(:type abCD)")),
+                            newAction("keyPress",   KeyEvent.VK_A),
+                            newAction("keyRelease", KeyEvent.VK_A),
+                            newAction("keyPress",   KeyEvent.VK_B),
+                            newAction("keyRelease", KeyEvent.VK_B),
+                            newAction("keyPress",   KeyEvent.VK_SHIFT),
+                            newAction("keyPress",   KeyEvent.VK_C),
+                            newAction("keyRelease", KeyEvent.VK_C),
+                            newAction("keyRelease", KeyEvent.VK_SHIFT),
+                            newAction("keyPress",   KeyEvent.VK_SHIFT),
+                            newAction("keyPress",   KeyEvent.VK_D),
+                            newAction("keyRelease", KeyEvent.VK_D),
+                            newAction("keyRelease", KeyEvent.VK_SHIFT));
         }
 
         {
-            var robot = new robotonous.test.FakeRobot();
-            var test = new RobotonousTest(robot);
             var expression = parseSexp("(:type a (:delay 3141) ($ctrl ($alt $enter) $left))");
-            var commands = toActions(expression);
-            List<Action> expected = List.of(
-                    newAction("keyPress",   KeyEvent.VK_A),
-                    newAction("keyRelease", KeyEvent.VK_A),
-                    newAction("delay",      3141),
-                    newAction("keyPress",   KeyEvent.VK_CONTROL),
-                    newAction("keyPress",   KeyEvent.VK_ALT),
-                    newAction("keyPress",   KeyEvent.VK_ENTER),
-                    newAction("keyRelease", KeyEvent.VK_ENTER),
-                    newAction("keyRelease", KeyEvent.VK_ALT),
-                    newAction("keyPress",   KeyEvent.VK_LEFT),
-                    newAction("keyRelease", KeyEvent.VK_LEFT),
-                    newAction("keyRelease", KeyEvent.VK_CONTROL));
 
-            test.test("type some control keys",
-                    commands, expected);
+            new RobotonousTest(new FakeRobot())
+                    .test("type some control keys",
+                            toActions(expression),
+                            newAction("keyPress",   KeyEvent.VK_A),
+                            newAction("keyRelease", KeyEvent.VK_A),
+                            newAction("delay",      3141),
+                            newAction("keyPress",   KeyEvent.VK_CONTROL),
+                            newAction("keyPress",   KeyEvent.VK_ALT),
+                            newAction("keyPress",   KeyEvent.VK_ENTER),
+                            newAction("keyRelease", KeyEvent.VK_ENTER),
+                            newAction("keyRelease", KeyEvent.VK_ALT),
+                            newAction("keyPress",   KeyEvent.VK_LEFT),
+                            newAction("keyRelease", KeyEvent.VK_LEFT),
+                            newAction("keyRelease", KeyEvent.VK_CONTROL));
+        }
+
+        {
+            var expression = parseSexp("(:type |(|)");
+
+            new RobotonousTest(new FakeRobot())
+                    .test("type some special characters",
+                            toActions(expression),
+                            newAction("keyPress",   KeyEvent.VK_SHIFT),
+                            newAction("keyPress",   KeyEvent.VK_0),
+                            newAction("keyRelease", KeyEvent.VK_0),
+                            newAction("keyRelease", KeyEvent.VK_SHIFT));
         }
     }
 
@@ -86,31 +88,32 @@ public class RobotonousTest {
 
     private void test(String testname,
             List<RobotAction> actions,
-            List<Action> expected) {
+            Action... expected) {
         actions
                 .forEach(axn -> axn.execute(robot));
 
         List<Action> actual = robot.actions();
+        List<Action> expctd = Arrays.asList(expected);
 
-        if (!expected.equals(actual)) {
+        if (!actual.equals(expctd)) {
             String message = "test " + testname + " failed.";
 
-            message += String.format("%nExpected: %s%nActual  : %s", expected, actual);
+            message += String.format("%nExpected: %s%nActual  : %s", expctd, actual);
 
             throw new IllegalStateException(message);
         }
     }
 
-    private static Sexp parseSexp(String content)
+    static private Sexp parseSexp(String content)
             throws SexpParserException {
         try (var reader = new StringReader(content)) {
-            return parse(reader);
+            return Robotonous.parse(reader);
         } catch (IOException e) {
             throw new RuntimeException("unreachable", e);
         }
     }
 
-    private static Action newAction(String name, Object... args) {
+    static private Action newAction(String name, Object... args) {
         if (args == null) {
             return new Action(name);
         }
