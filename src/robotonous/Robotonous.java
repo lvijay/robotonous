@@ -4,10 +4,9 @@ import static de.tudresden.inf.lat.jsexp.SexpFactory.newAtomicSexp;
 import static de.tudresden.inf.lat.jsexp.SexpFactory.newNonAtomicSexp;
 import static java.awt.event.InputEvent.getMaskForButton;
 import static java.awt.event.KeyEvent.*;
-import static java.awt.event.MouseEvent.BUTTON1;
-import static java.awt.event.MouseEvent.BUTTON2;
-import static java.awt.event.MouseEvent.BUTTON3;
+import static java.awt.event.MouseEvent.*;
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.file.Files.newBufferedReader;
 import static java.util.Map.entry;
 import static java.util.stream.Collectors.toList;
 
@@ -18,7 +17,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.MalformedInputException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,8 +36,7 @@ public class Robotonous {
         final boolean useRepl;
         if (args.length > 0) {
             try {
-                String filename = args[0];
-                reader = Files.newBufferedReader(Paths.get(filename), US_ASCII);
+                reader = newBufferedReader(Paths.get(args[0]), US_ASCII);
                 useRepl = false;
             } catch (MalformedInputException e) {
                 throw new IllegalArgumentException("Only ASCII encoded files supported.");
@@ -80,7 +77,7 @@ public class Robotonous {
         }
     }
 
-    private static final Map<String, CommandHandler> COMMANDS = Map.of(
+    static private final Map<String, CommandHandler> COMMANDS = Map.of(
             ":type",       new TextHandler(),
             ":typeline",   new LineHandler(),
             ":mouseclick", new MouseClickHandler(),
@@ -90,19 +87,15 @@ public class Robotonous {
 
     public static List<RobotAction> toActions(Sexp sexp) {
         if (sexp.isAtomic()) {
-            // throw?
             throw new IllegalStateException("could not parse " + sexp);
         }
 
-        Sexp cmdEl = car(sexp);
-        Sexp cdr = cdr(sexp);
-
-        if (!cmdEl.isAtomic()) {
-            throw new IllegalArgumentException("Expected command got " + cmdEl);
-        }
-
+        var cmdEl = car(sexp);
+        var cdr = cdr(sexp);
         var cmd = cmdEl.toString();
-        if (!COMMANDS.containsKey(cmd)) {
+
+        if (!cmdEl.isAtomic()
+                || !COMMANDS.containsKey(cmd)) {
             throw new IllegalArgumentException("Expected command got " + cmdEl);
         }
 
@@ -112,7 +105,7 @@ public class Robotonous {
         return actions;
     }
 
-    private static Sexp normalize(Sexp commands) {
+    static private Sexp normalize(Sexp commands) {
         if (commands.isAtomic()) {
             var cmd = commands.toString();
             var len = cmd.length();
@@ -192,14 +185,14 @@ public class Robotonous {
         }
     }
 
-    private static class TextHandler implements CommandHandler {
-        private static final Map<String, Integer> CONTROLS = Map.of(
+    static private class TextHandler implements CommandHandler {
+        static private final Map<String, Integer> CONTROLS = Map.of(
                 "$ctrl",  VK_CONTROL,
                 "$alt",   VK_ALT,
                 "$meta",  VK_META,
                 "$shift", VK_SHIFT);
 
-        private static final Map<String, int[]> SPECIALS = Map.ofEntries(
+        static private final Map<String, int[]> SPECIALS = Map.ofEntries(
                 entry("$left",        new int[] { VK_LEFT                 }),
                 entry("$right",       new int[] { VK_RIGHT                }),
                 entry("$up",          new int[] { VK_UP                   }),
@@ -212,8 +205,8 @@ public class Robotonous {
                 entry("$pageup",      new int[] { VK_PAGE_UP              }),
                 entry("$pagedown",    new int[] { VK_PAGE_DOWN            }),
                 entry("$delete",      new int[] { VK_DELETE               }),
-                entry("$doublequote", new int[] { VK_SHIFT, VK_QUOTE      }),
-                entry("$pipe",        new int[] { VK_SHIFT, VK_BACK_SLASH }));
+                entry("$doublequote",      shift( VK_QUOTE                )),
+                entry("$pipe",             shift( VK_BACK_SLASH           )));
 
         @Override
         public List<RobotAction> handle(Sexp text, CommandHandler defaultHandler) {
@@ -256,7 +249,7 @@ public class Robotonous {
             return actions;
         }
 
-        private List<RobotAction> toTypeActions(String cmd) {
+        static private List<RobotAction> toTypeActions(String cmd) {
             // two cases
             // case 1: it is a subcommand [eg :left :backspace] or
             // else  : it is string with individual characters to type
@@ -273,14 +266,14 @@ public class Robotonous {
             }
 
             List<RobotAction> keyPresses = keys.stream()
-                    .map(this::toRobotAction)
+                    .map(keycodes -> toRobotAction(keycodes))
                     .flatMap(List::stream)
                     .collect(toList());
 
             return keyPresses;
         }
 
-        private int[] key(char c) {
+        static private int[] key(char c) {
             if (c >= 'a' && c <= 'z') {
                 return new int[] { VK_A + (Character.toUpperCase(c) - 'A') };
             }
@@ -333,12 +326,12 @@ public class Robotonous {
             }
         }
 
-        private int[] shift(int keycode) {
+        static private int[] shift(int keycode) {
             int shiftKey = CONTROLS.get("$shift");
             return new int[] { shiftKey, keycode };
         }
 
-        private List<RobotAction> toRobotAction(int[] keys) {
+        static private List<RobotAction> toRobotAction(int[] keys) {
             if (keys.length == 1) {
                 return List.of(
                         new KeyPressAction(keys[0]),
@@ -391,7 +384,7 @@ public class Robotonous {
     }
 
     static private final class MouseClickHandler implements CommandHandler {
-        private static final Map<String, Integer> MOUSE_EVENT = Map.of(
+        static private final Map<String, Integer> MOUSE_EVENTS = Map.of(
                 "$left", getMaskForButton(BUTTON1),
                 "$right", getMaskForButton(BUTTON3),
                 "$middle", getMaskForButton(BUTTON2));
@@ -407,19 +400,19 @@ public class Robotonous {
                 if (el.isAtomic()) {
                     var click = el.toString();
 
-                    if (!MOUSE_EVENT.containsKey(click)) {
+                    if (!MOUSE_EVENTS.containsKey(click)) {
                         throw new IllegalArgumentException("cannot click " + el);
                     }
 
-                    int button = MOUSE_EVENT.get(click).intValue();
+                    int button = MOUSE_EVENTS.get(click).intValue();
                     actions.add(new MousePressAction(button));
                     actions.add(new MouseReleaseAction(button));
                 } else {
                     var subclicksexp = car(el);
                     var subclick = subclicksexp.toString();
 
-                    if (MOUSE_EVENT.containsKey(subclick)) {
-                        int button = MOUSE_EVENT.get(subclick).intValue();
+                    if (MOUSE_EVENTS.containsKey(subclick)) {
+                        int button = MOUSE_EVENTS.get(subclick).intValue();
 
                         actions.add(new MousePressAction(button));
 
@@ -443,7 +436,7 @@ public class Robotonous {
     /*
      * S-Exp utilities
      */
-    private static Sexp car(Sexp sexp) {
+    static private Sexp car(Sexp sexp) {
         if (sexp.getLength() == 0) {
             return sexp; // (car nil) => nil
         }
@@ -451,13 +444,13 @@ public class Robotonous {
         return sexp.get(0);
     }
 
-    private static SexpList cdr(Sexp list) {
+    static private SexpList cdr(Sexp list) {
         SexpList cdr = (SexpList) newNonAtomicSexp();
 
         boolean first = true;
         for (Sexp el : list) {
-            if (!first) { cdr.add(el); }
-            else        { first = false; }
+            if (first) { first = false; } // skip
+            else       { cdr.add(el);   }
         }
 
         return cdr;
