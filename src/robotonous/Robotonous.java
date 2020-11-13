@@ -194,26 +194,26 @@ public class Robotonous {
 
     private static class TextHandler implements CommandHandler {
         private static final Map<String, Integer> CONTROLS = Map.of(
-                ":ctrl",  VK_CONTROL,
-                ":alt",   VK_ALT,
-                ":meta",  VK_META,
-                ":shift", VK_SHIFT);
+                "$ctrl",  VK_CONTROL,
+                "$alt",   VK_ALT,
+                "$meta",  VK_META,
+                "$shift", VK_SHIFT);
 
         private static final Map<String, int[]> SPECIALS = Map.ofEntries(
-                entry(":left",        new int[] { VK_LEFT                 }),
-                entry(":right",       new int[] { VK_RIGHT                }),
-                entry(":up",          new int[] { VK_UP                   }),
-                entry(":down",        new int[] { VK_DOWN                 }),
-                entry(":backspace",   new int[] { VK_BACK_SPACE           }),
-                entry(":space",       new int[] { VK_SPACE                }),
-                entry(":enter",       new int[] { VK_ENTER                }),
-                entry(":home",        new int[] { VK_HOME                 }),
-                entry(":end",         new int[] { VK_END                  }),
-                entry(":pageup",      new int[] { VK_PAGE_UP              }),
-                entry(":pagedown",    new int[] { VK_PAGE_DOWN            }),
-                entry(":delete",      new int[] { VK_DELETE               }),
-                entry(":doublequote", new int[] { VK_SHIFT, VK_QUOTE      }),
-                entry(":pipe",        new int[] { VK_SHIFT, VK_BACK_SLASH }));
+                entry("$left",        new int[] { VK_LEFT                 }),
+                entry("$right",       new int[] { VK_RIGHT                }),
+                entry("$up",          new int[] { VK_UP                   }),
+                entry("$down",        new int[] { VK_DOWN                 }),
+                entry("$backspace",   new int[] { VK_BACK_SPACE           }),
+                entry("$space",       new int[] { VK_SPACE                }),
+                entry("$enter",       new int[] { VK_ENTER                }),
+                entry("$home",        new int[] { VK_HOME                 }),
+                entry("$end",         new int[] { VK_END                  }),
+                entry("$pageup",      new int[] { VK_PAGE_UP              }),
+                entry("$pagedown",    new int[] { VK_PAGE_DOWN            }),
+                entry("$delete",      new int[] { VK_DELETE               }),
+                entry("$doublequote", new int[] { VK_SHIFT, VK_QUOTE      }),
+                entry("$pipe",        new int[] { VK_SHIFT, VK_BACK_SLASH }));
 
         @Override
         public List<RobotAction> handle(Sexp text, CommandHandler defaultHandler) {
@@ -334,7 +334,7 @@ public class Robotonous {
         }
 
         private int[] shift(int keycode) {
-            int shiftKey = CONTROLS.get(":shift");
+            int shiftKey = CONTROLS.get("$shift");
             return new int[] { shiftKey, keycode };
         }
 
@@ -392,9 +392,9 @@ public class Robotonous {
 
     static private final class MouseClickHandler implements CommandHandler {
         private static final Map<String, Integer> MOUSE_EVENT = Map.of(
-                ":left", getMaskForButton(BUTTON1),
-                ":right", getMaskForButton(BUTTON3),
-                ":middle", getMaskForButton(BUTTON2));
+                "$left", getMaskForButton(BUTTON1),
+                "$right", getMaskForButton(BUTTON3),
+                "$middle", getMaskForButton(BUTTON2));
 
         @Override
         public List<RobotAction> handle(Sexp clicks, CommandHandler defaultHandler) {
