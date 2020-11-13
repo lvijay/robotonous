@@ -135,41 +135,41 @@ public class Robotonous {
         return nsexp;
     }
 
-    static abstract class RobotAction {
+    static public abstract class RobotAction {
         public abstract void execute(Robot robot);
     }
 
-    static final class DelayAction extends RobotAction {
+    static private final class DelayAction extends RobotAction {
         private final int delayMs;
         public DelayAction(int delayMs) { this.delayMs = delayMs; }
         @Override public void execute(Robot robot) { robot.delay(delayMs); }
     }
 
-    static final class KeyPressAction extends RobotAction {
+    static private final class KeyPressAction extends RobotAction {
         private final int keycode;
         public KeyPressAction(int keycode) { this.keycode = keycode; }
         @Override public void execute(Robot robot) { robot.keyPress(keycode); }
     }
 
-    static final class KeyReleaseAction extends RobotAction {
+    static private final class KeyReleaseAction extends RobotAction {
         private final int keycode;
         public KeyReleaseAction(int keycode) { this.keycode = keycode; }
         @Override public void execute(Robot robot) { robot.keyRelease(keycode); }
     }
 
-    static final class MousePressAction extends RobotAction {
+    static private final class MousePressAction extends RobotAction {
         private final int button;
         public MousePressAction(int button) { this.button = button; }
         @Override public void execute(Robot robot) { robot.mousePress(button); }
     }
 
-    static final class MouseReleaseAction extends RobotAction {
+    static private final class MouseReleaseAction extends RobotAction {
         private final int button;
         public MouseReleaseAction(int button) { this.button = button; }
         @Override public void execute(Robot robot) { robot.mouseRelease(button); }
     }
 
-    static final class MouseMoveAction extends RobotAction {
+    static private final class MouseMoveAction extends RobotAction {
         private final int x, y;
         public MouseMoveAction(int x, int y) { this.x = x; this.y = y; }
         @Override public void execute(Robot robot) { robot.mouseMove(x, y); }
@@ -178,11 +178,11 @@ public class Robotonous {
     /*
      * Handlers
      */
-    static interface CommandHandler {
         List<RobotAction> handle(Sexp sexp, CommandHandler parent);
+    static private interface CommandHandler {
     }
 
-    private static class DelayHandler implements CommandHandler {
+    static private final class DelayHandler implements CommandHandler {
         @Override @SuppressWarnings("unused")
         public List<RobotAction> handle(Sexp sexp, CommandHandler parent) {
             var delaySexp = car(sexp);
@@ -362,7 +362,7 @@ public class Robotonous {
     /**
      * Line is text with a newline following it.
      */
-    static final class LineHandler extends TextHandler {
+    static private final class LineHandler extends TextHandler {
         @Override
         public List<RobotAction> handle(Sexp text, CommandHandler parent) {
             var typing = super.handle(text, parent);
@@ -377,7 +377,7 @@ public class Robotonous {
         }
     }
 
-    private static class MouseMoveHandler implements CommandHandler {
+    static private final class MouseMoveHandler implements CommandHandler {
         @SuppressWarnings("unused")
         @Override
         public List<RobotAction> handle(Sexp sexp, CommandHandler parent) {
@@ -390,7 +390,7 @@ public class Robotonous {
         }
     }
 
-    private static class MouseClickHandler implements CommandHandler {
+    static private final class MouseClickHandler implements CommandHandler {
         private static final Map<String, Integer> MOUSE_EVENT = Map.of(
                 ":left", getMaskForButton(BUTTON1),
                 ":right", getMaskForButton(BUTTON3),
