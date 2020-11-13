@@ -80,29 +80,6 @@ public class Robotonous {
         }
     }
 
-    private static Sexp normalize(Sexp commands) {
-        if (commands.isAtomic()) {
-            var cmd = commands.toString();
-            var len = cmd.length();
-
-            if ((cmd.charAt(0) == '"' && cmd.charAt(len - 1) == '"')
-                    || (cmd.charAt(0) == '|' && cmd.charAt(len - 1) == '|')) {
-                cmd = cmd.substring(1, len - 1);
-                return newAtomicSexp(cmd);
-            }
-
-            return commands;
-        }
-
-        var nsexp = SexpFactory.newNonAtomicSexp();
-
-        for (var cmd : commands) {
-            nsexp.add(normalize(cmd));
-        }
-
-        return nsexp;
-    }
-
     private static final Map<String, CommandHandler> COMMANDS = Map.of(
             ":type",       new TextHandler(),
             ":typeline",   new LineHandler(),
@@ -111,7 +88,7 @@ public class Robotonous {
             ":delay",      new DelayHandler()
             );
 
-    static List<RobotAction> toActions(Sexp sexp) {
+    public static List<RobotAction> toActions(Sexp sexp) {
         if (sexp.isAtomic()) {
             // throw?
             throw new IllegalStateException("could not parse " + sexp);
@@ -133,6 +110,29 @@ public class Robotonous {
                 .handle(cdr, (s, ignored) -> toActions(s));
 
         return actions;
+    }
+
+    private static Sexp normalize(Sexp commands) {
+        if (commands.isAtomic()) {
+            var cmd = commands.toString();
+            var len = cmd.length();
+
+            if ((cmd.charAt(0) == '"' && cmd.charAt(len - 1) == '"')
+                    || (cmd.charAt(0) == '|' && cmd.charAt(len - 1) == '|')) {
+                cmd = cmd.substring(1, len - 1);
+                return newAtomicSexp(cmd);
+            }
+
+            return commands;
+        }
+
+        var nsexp = SexpFactory.newNonAtomicSexp();
+
+        for (var cmd : commands) {
+            nsexp.add(normalize(cmd));
+        }
+
+        return nsexp;
     }
 
     static abstract class RobotAction {
