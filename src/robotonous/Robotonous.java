@@ -21,7 +21,6 @@ import java.nio.charset.MalformedInputException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.IntUnaryOperator;
@@ -194,11 +193,13 @@ public class Robotonous {
     }
 
     private static class TextHandler implements CommandHandler {
+        private static final Map<String, Integer> CONTROLS = Map.of(
+                ":ctrl",  VK_CONTROL,
+                ":alt",   VK_ALT,
+                ":meta",  VK_META,
+                ":shift", VK_SHIFT);
+
         private static final Map<String, int[]> SPECIALS = Map.ofEntries(
-                entry(":ctrl",        new int[] { VK_CONTROL              }),
-                entry(":alt",         new int[] { VK_ALT                  }),
-                entry(":meta",        new int[] { VK_META                 }),
-                entry(":shift",       new int[] { VK_SHIFT                }),
                 entry(":left",        new int[] { VK_LEFT                 }),
                 entry(":right",       new int[] { VK_RIGHT                }),
                 entry(":up",          new int[] { VK_UP                   }),
@@ -212,8 +213,7 @@ public class Robotonous {
                 entry(":pagedown",    new int[] { VK_PAGE_DOWN            }),
                 entry(":delete",      new int[] { VK_DELETE               }),
                 entry(":doublequote", new int[] { VK_SHIFT, VK_QUOTE      }),
-                entry(":pipe",        new int[] { VK_SHIFT, VK_BACK_SLASH })
-                );
+                entry(":pipe",        new int[] { VK_SHIFT, VK_BACK_SLASH }));
 
         @Override
         public List<RobotAction> handle(Sexp text, CommandHandler parent) {
@@ -235,22 +235,17 @@ public class Robotonous {
                     var subcmdsexp = car(el);
                     var subcmd = subcmdsexp.toString();
 
-                    if (SPECIALS.containsKey(subcmd)) {
-                        int[] keycodes = SPECIALS.get(subcmd);
+                    if (CONTROLS.containsKey(subcmd)) {
+                        int keycode = CONTROLS.get(subcmd);
 
-                        Arrays.stream(keycodes)
-                                .mapToObj(KeyPressAction::new)
-                                .forEach(actions::add);
+                        actions.add(new KeyPressAction(keycode));
 
                         try {
                             var subTextTyping = handle(cdr(el), parent);
 
                             actions.addAll(subTextTyping);
                         } finally {
-                            IntStream.rangeClosed(keycodes.length - 1, 0)
-                                    .map(i -> keycodes[i])
-                                    .mapToObj(KeyReleaseAction::new)
-                                    .forEach(actions::add);
+                            actions.add(new KeyReleaseAction(keycode));
                         }
                     } else {
                         actions.addAll(parent.handle(el, parent));
@@ -269,6 +264,8 @@ public class Robotonous {
 
             if (SPECIALS.containsKey(cmd)) {
                 keys.add(SPECIALS.get(cmd));
+            } else if (CONTROLS.containsKey(cmd)) {
+                keys.add(new int[] { CONTROLS.get(cmd) });
             } else {
                 for (int i = 0; i < cmd.length(); ++i) {
                     keys.add(key(cmd.charAt(i)));
@@ -284,12 +281,11 @@ public class Robotonous {
         }
 
         private int[] key(char c) {
-            int shiftKey = SPECIALS.get(":shift")[0];
             if (c >= 'a' && c <= 'z') {
                 return new int[] { VK_A + (Character.toUpperCase(c) - 'A') };
             }
             if (c >= 'A' && c <= 'Z') {
-                return new int[] { shiftKey, VK_A + (Character.toUpperCase(c) - 'A') };
+                return shift(VK_A + (Character.toUpperCase(c) - 'A'));
             }
             IntUnaryOperator todigit = i -> '0' + (i - '0');
             if (c >= '0' && c <= '9') {
@@ -300,41 +296,46 @@ public class Robotonous {
             case '\t': return new int[] { VK_TAB };
             case ' ':  return new int[] { VK_SPACE };
             case '-':  return new int[] { VK_MINUS };
-            case '_':  return new int[] { shiftKey, VK_MINUS };
+            case '_':  return      shift( VK_MINUS );
             case '=':  return new int[] { VK_EQUALS };
-            case '+':  return new int[] { shiftKey, VK_EQUALS };
+            case '+':  return      shift( VK_EQUALS );
             case '`':  return new int[] { VK_BACK_QUOTE };
-            case '~':  return new int[] { shiftKey, VK_BACK_QUOTE };
+            case '~':  return      shift( VK_BACK_QUOTE );
             case ',':  return new int[] { VK_COMMA };
-            case '<':  return new int[] { shiftKey, VK_COMMA };
+            case '<':  return      shift( VK_COMMA );
             case '.':  return new int[] { VK_PERIOD };
-            case '>':  return new int[] { shiftKey, VK_PERIOD };
+            case '>':  return      shift( VK_PERIOD );
             case '/':  return new int[] { VK_SLASH };
-            case '?':  return new int[] { shiftKey, VK_SLASH };
+            case '?':  return      shift( VK_SLASH );
             case ';':  return new int[] { VK_SEMICOLON };
-            case ':':  return new int[] { shiftKey, VK_SEMICOLON };
+            case ':':  return      shift( VK_SEMICOLON );
             case '\'': return new int[] { VK_QUOTE };
-            case '"':  return new int[] { shiftKey, VK_QUOTE };
+            case '"':  return      shift( VK_QUOTE );
             case '[':  return new int[] { VK_OPEN_BRACKET };
-            case '{':  return new int[] { shiftKey, VK_OPEN_BRACKET };
+            case '{':  return      shift( VK_OPEN_BRACKET );
             case ']':  return new int[] { VK_CLOSE_BRACKET };
-            case '}':  return new int[] { shiftKey, VK_CLOSE_BRACKET };
+            case '}':  return      shift( VK_CLOSE_BRACKET );
             case '\\': return new int[] { VK_BACK_SLASH };
-            case '|':  return new int[] { shiftKey, VK_BACK_SLASH };
+            case '|':  return      shift( VK_BACK_SLASH );
 
-            case '!':  return new int[] { shiftKey, todigit.applyAsInt('1') };
-            case '@':  return new int[] { shiftKey, todigit.applyAsInt('2') };
-            case '#':  return new int[] { shiftKey, todigit.applyAsInt('3') };
-            case '$':  return new int[] { shiftKey, todigit.applyAsInt('4') };
-            case '%':  return new int[] { shiftKey, todigit.applyAsInt('5') };
-            case '^':  return new int[] { shiftKey, todigit.applyAsInt('6') };
-            case '&':  return new int[] { shiftKey, todigit.applyAsInt('7') };
-            case '*':  return new int[] { shiftKey, todigit.applyAsInt('8') };
-            case '(':  return new int[] { shiftKey, todigit.applyAsInt('9') };
-            case ')':  return new int[] { shiftKey, todigit.applyAsInt('0') };
+            case '!':  return shift(todigit.applyAsInt('1'));
+            case '@':  return shift(todigit.applyAsInt('2'));
+            case '#':  return shift(todigit.applyAsInt('3'));
+            case '$':  return shift(todigit.applyAsInt('4'));
+            case '%':  return shift(todigit.applyAsInt('5'));
+            case '^':  return shift(todigit.applyAsInt('6'));
+            case '&':  return shift(todigit.applyAsInt('7'));
+            case '*':  return shift(todigit.applyAsInt('8'));
+            case '(':  return shift(todigit.applyAsInt('9'));
+            case ')':  return shift(todigit.applyAsInt('0'));
 
             default: throw new IllegalArgumentException("cannot handle " + c);
             }
+        }
+
+        private int[] shift(int keycode) {
+            int shiftKey = CONTROLS.get(":shift");
+            return new int[] { shiftKey, keycode };
         }
 
         private List<RobotAction> toRobotAction(int[] keys) {
