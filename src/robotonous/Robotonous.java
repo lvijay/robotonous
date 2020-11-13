@@ -1,7 +1,5 @@
 package robotonous;
 
-import static de.tudresden.inf.lat.jsexp.SexpFactory.newAtomicSexp;
-import static de.tudresden.inf.lat.jsexp.SexpFactory.newNonAtomicSexp;
 import static java.awt.event.InputEvent.getMaskForButton;
 import static java.awt.event.KeyEvent.*;
 import static java.awt.event.MouseEvent.*;
@@ -54,8 +52,8 @@ public class Robotonous {
             while (true) {
                 if (useRepl) { System.out.print("command>>> "); }
                 try {
-                    var commands = SexpFactory.parse(reader);
-                    var action = toActions(normalize(commands));
+                    var commands = parse(reader);
+                    var action = toActions(commands);
 
                     action
                             .forEach(axn -> axn.execute(robot));
@@ -77,15 +75,11 @@ public class Robotonous {
         }
     }
 
-    static private final Map<String, CommandHandler> COMMANDS = Map.of(
-            ":type",       new TextHandler(),
-            ":typeline",   new LineHandler(),
-            ":mouseclick", new MouseClickHandler(),
-            ":mousemove",  new MouseMoveHandler(),
-            ":delay",      new DelayHandler()
-            );
+    static public Sexp parse(Reader reader) throws SexpParserException, IOException {
+        return normalize(SexpFactory.parse(reader));
+    }
 
-    public static List<RobotAction> toActions(Sexp sexp) {
+    static public List<RobotAction> toActions(Sexp sexp) {
         if (sexp.isAtomic()) {
             throw new IllegalStateException("could not parse " + sexp);
         }
@@ -105,6 +99,14 @@ public class Robotonous {
         return actions;
     }
 
+    static private final Map<String, CommandHandler> COMMANDS = Map.of(
+            ":type",       new TextHandler(),
+            ":typeline",   new LineHandler(),
+            ":mouseclick", new MouseClickHandler(),
+            ":mousemove",  new MouseMoveHandler(),
+            ":delay",      new DelayHandler()
+            );
+
     static private Sexp normalize(Sexp commands) {
         if (commands.isAtomic()) {
             var cmd = commands.toString();
@@ -113,7 +115,7 @@ public class Robotonous {
             if ((cmd.charAt(0) == '"' && cmd.charAt(len - 1) == '"')
                     || (cmd.charAt(0) == '|' && cmd.charAt(len - 1) == '|')) {
                 cmd = cmd.substring(1, len - 1);
-                return newAtomicSexp(cmd);
+                return SexpFactory.newAtomicSexp(cmd);
             }
 
             return commands;
@@ -359,7 +361,7 @@ public class Robotonous {
         @Override
         public List<RobotAction> handle(Sexp text, CommandHandler defaultHandler) {
             var typing = super.handle(text, defaultHandler);
-            var newlines = super.handle(newAtomicSexp("\n"), defaultHandler);
+            var newlines = super.handle(SexpFactory.newAtomicSexp("\n"), defaultHandler);
 
             var line = new ArrayList<RobotAction>(typing.size() + newlines.size());
 
@@ -445,7 +447,7 @@ public class Robotonous {
     }
 
     static private SexpList cdr(Sexp list) {
-        SexpList cdr = (SexpList) newNonAtomicSexp();
+        SexpList cdr = (SexpList) SexpFactory.newNonAtomicSexp();
 
         boolean first = true;
         for (Sexp el : list) {
