@@ -13,7 +13,11 @@
          (if (keywordp cmd)
              `(robotonous-top-level ,robot ,cmd .,args)
              form)) :into cmds
-     :finally (return `(let ((,robot ,robot-form)) (progn .,cmds)))))
+     :finally (return `(let ((,robot ,robot-form))
+                         (macrolet ((robo (&body body)
+                                      `(with-robot (,',robot ,',robot)
+                                         ,@body)))
+                           (progn .,cmds))))))
 
 (defun robotonous-top-level (robot command &rest arguments)
   (case command
