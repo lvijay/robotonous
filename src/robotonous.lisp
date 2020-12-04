@@ -188,6 +188,9 @@ corresponding Robot value."
             (_keyrelease robot keycodes))
           (apply #'robotonous-top-level robot cmd args)))))
 
+(defmethod _type ((robot (jclass "java.awt.Robot")) (value t))
+  (_type robot (format nil "~a" value)))
+
 (defun _type-keycodes (robot keycodes)
   (_keypress   robot keycodes)
   (delay robot 10)
