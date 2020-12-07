@@ -41,11 +41,11 @@
 ;;; Mouse actions
 (defun mouse-move (robot x y &optional (relative 'nil))
   (if relative
-      (destructuring-bind (dx dy) (_mouse-position)
+      (destructuring-bind (dx dy) (mouse-position)
         (jcall "mouseMove" robot (+ x dx) (+ y dy)))
       (jcall "mouseMove" robot x y)))
 
-(defun _mouse-position ()
+(defun mouse-position ()
   (let* ((mouse-ptr (jstatic "getPointerInfo" *mouse-info-class*))
          (point (jcall "getLocation" mouse-ptr)))
     (list (jfield "x" point) (jfield "y" point))))
@@ -193,7 +193,7 @@ corresponding Robot value."
 
 (defun _type-keycodes (robot keycodes)
   (_keypress   robot keycodes)
-  (delay robot 10)
+  (delay robot 1)
   (_keyrelease robot keycodes))
 
 (defun _keypress (robot keycodes)
