@@ -54,9 +54,9 @@ if you want to type the programmers favorite string, `hello, world!`,
 you specify it with the lisp form, `(:type "hello, world!")`.  Lists
 are useful especially for cases where you want to do multiple things
 together.  For instance, if you want to press down the keys _Ctrl_,
-_Alt_, and _d_, use `(:type ($ctrl ($alt d)))`.  If you want to click
+_Alt_, and _d_, use `(:type (:ctrl (:alt d)))`.  If you want to click
 on some location while holding down the _Shift_ key, use `(:type
-($shift (:mousemove 100 200) (:mouseclick $left)))`.
+(:shift (:mousemove 100 200) (:mouseclick :left)))`.
 
 Robotonous commands start with `:`.  The following commands are
 supported:
@@ -75,45 +75,44 @@ supported:
     typed as if pressing shift followed by the letter.  The following
     examples are all equivalent, feel free to use them
     interchangeably.
-    - `(:type ($shift a))` is the same as `(:type A)`
-    - `(:type "#(abcd)")` is the same as `(:type ($shift 39) abcd
+    - `(:type (:shift a))` is the same as `(:type A)`
+    - `(:type "#(abcd)")` is the same as `(:type (:shift 39) abcd
       (:shift 0)) ` though the former is more convenient.
   + **Subcommands** are ways to type control characters — keys you
     must keep pressed when typing other keys.  These include special
     characters like `!@#$%^` and most keyboard shortcuts.  For
-    instance, to press control, alt, and 4, use `($ctrl ($alt 4))`.
+    instance, to press control, alt, and 4, use `(:ctrl (:alt 4))`.
     At this time, the following subcommands are supported:
-    - $ctrl
-    - $alt
-    - $meta — The Command key on Mac keyboards and Windows key on
+    - :ctrl
+    - :alt
+    - :meta — The Command key on Mac keyboards and Windows key on
       windows keyboards.
-    - $shift
+    - :shift
   + **Specials** are ways to type characters that you can't represent
     easily.  These include the arrow keys, the Escape key among
     others.  The following special keys are supported:
-    - $left — type the left arrow
-    - $right — type the right arrow
-    - $up — type the up arrow
-    - $down — type the down arrow
-    - $backspace
-    - $space
-    - $enter
-    - $home
-    - $end
-    - $pageup
-    - $pagedown
-    - $delete
-    - $doublequote — type `"` (actually types `SHIFT` followed by `'`)
-    - $pipe — type `|`.
+    - :left — type the left arrow
+    - :right — type the right arrow
+    - :up — type the up arrow
+    - :down — type the down arrow
+    - :backspace
+    - :space
+    - :enter
+    - :home
+    - :end
+    - :pageup
+    - :pagedown
+    - :delete
+    - :pipe — type `|`.
 - `:mousemove` — moves the mouse to the given x y position.
   `(:mousemove 100 200)` moves the mouse cursor to x=100, y=200.
 - `:mouseclick` — clicks the specified mouse key.  The mousekeys are
   defined with
-  + $left — left click button
-  + $right — right click button
-  + $middle — middle click button
+  + :left — left click button
+  + :right — right click button
+  + :middle — middle click button
 
-  To double click, use `(:mouseclick $left $left)`.  To press both
+  To double click, use `(:mouseclick :left :left)`.  To press both
   left and right buttons together, use `(:mouseclick (:left
   (:right)))`.
 - `:delay` — sleeps for milliseconds.  `(:delay 1000)` sleeps for
@@ -133,8 +132,8 @@ whitespaces:
 1. Double quotes — The `"` character defines a string.  Content within
    it is treated literally.  For instance, `(:type "a b c d")` will
    type `a b c d`. Commands and subcommands are ignored and treated as
-   ordinary characters to be typed out too.  `(:type "$end $(shift
-   4)")` literally types `"$end $(shift 4)"`.  Backslashes are treated
+   ordinary characters to be typed out too.  `(:type ":end :(shift
+   4)")` literally types `":end :(shift 4)"`.  Backslashes are treated
    literally too.  `"\n"` is treated as a String of two characters:
    `\` followed by `n`.
 
@@ -156,8 +155,7 @@ whitespaces:
 
 ```lisp
 (:type "|" |"|)               ;; solution 1, ugly, not recommended
-(:type $doublequote $pipe)    ;; solution 2
-(:type ($shift ') ($shift \)) ;; solution 3
+(:type (:shift ') (:shift \)) ;; solution 2
 ```
 
 ## Demo
