@@ -48,7 +48,7 @@ public class TestRobotonous {
     @SuppressWarnings("unused")
     private void testActions() {
         this.robot.clearRecords();
-        robotonous.type("#3a");
+        robotonous.type("#3a\tm");
         List<Pair> records = this.robot.records();
 
         assert records.equals(List.of(
@@ -59,6 +59,11 @@ public class TestRobotonous {
                 new Pair(Event.KEY_PRESS, "" + KeyEvent.VK_3),
                 new Pair(Event.KEY_RELEASE, "" + KeyEvent.VK_3),
                 new Pair(Event.KEY_PRESS, "" + KeyEvent.VK_A),
-                new Pair(Event.KEY_RELEASE, "" + KeyEvent.VK_A)));
+                new Pair(Event.KEY_RELEASE, "" + KeyEvent.VK_A),
+                new Pair(Event.KEY_PRESS, "" + KeyEvent.VK_TAB),
+                new Pair(Event.KEY_RELEASE, "" + KeyEvent.VK_TAB),
+                new Pair(Event.KEY_PRESS, "" + KeyEvent.VK_M),
+                new Pair(Event.KEY_RELEASE, "" + KeyEvent.VK_M)
+                ));
     }
 }
