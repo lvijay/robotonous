@@ -135,6 +135,12 @@ public class Robotonous {
             return new int[] { VK_0 + diff };
         }
 
+        if (c >= '①' && c <= '⑳') {
+            int diff = c - '①';
+            int val = diff + 1;
+            return new int[] { val * -100 };
+        }
+
         switch (c) {
         case 'Λ':  return new int[] { VK_CONTROL };
         case '⌥':  return new int[] { VK_ALT };
@@ -177,15 +183,6 @@ public class Robotonous {
         case '|':  return new int[] { VK_SHIFT, VK_BACK_SLASH };
         case '`':  return new int[] { VK_BACK_QUOTE };
         case '~':  return new int[] { VK_SHIFT, VK_BACK_QUOTE };
-        case '①': return new int[] { -100 };
-        case '②': return new int[] { -200 };
-        case '③': return new int[] { -300 };
-        case '④': return new int[] { -400 };
-        case '⑤': return new int[] { -500 };
-        case '⑥': return new int[] { -600 };
-        case '⑦': return new int[] { -700 };
-        case '⑧': return new int[] { -800 };
-        case '⑨': return new int[] { -900 };
         default:
             throw new IllegalArgumentException("Unknown character: " + c);
         }
