@@ -45,23 +45,6 @@ public class Robotonous {
         this.startTime = null;
     }
 
-    public static void main(String[] args) throws Exception {
-        var robot = new Robot();
-
-        for (int i = 0; i < 5; ++i) {
-                System.out.println("Sleeping for 1 seconds...");
-                robot.delay(1000);
-        }
-
-        var r = new Robotonous(robot);
-
-        for (String arg : args) {
-            Files.lines(Paths.get(arg), UTF_8)
-                    .map(line -> line + "\n")
-                    .forEach(r::type);
-        }
-    }
-
     public void type(String s) {
         long stepStart = System.nanoTime();
         startTime = Optional.ofNullable(startTime)
@@ -95,9 +78,9 @@ public class Robotonous {
                 List<Integer> seq = new ArrayList<>();
                 int end = s.indexOf('»', start);
                 for (int j = start; j < end; ++j) {
-                    seq.addAll(Arrays.stream(toKeyEvent(s.charAt(j)))
-                            .boxed()
-                            .collect(toList()));
+                    for (int keycode : toKeyEvent(s.charAt(j))) {
+                        seq.add(keycode);
+                    }
                 }
                 sentences.add(seq);
                 i = end;
@@ -205,6 +188,20 @@ public class Robotonous {
         case '⑨': return new int[] { -900 };
         default:
             throw new IllegalArgumentException("Unknown character: " + c);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        var robot = new Robot();
+        for (int i = 0; i < 5; ++i) {
+            System.out.println("Sleeping for 1 seconds...");
+            robot.delay(1000);
+        }
+
+        var r = new Robotonous(robot);
+        for (var filename : args) {
+            var contents = Files.readString(Paths.get(filename), UTF_8);
+            r.type(contents);
         }
     }
 }
