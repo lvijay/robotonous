@@ -68,11 +68,7 @@ public class Robotonous {
         for (int i = 0; i < s.length(); ++i) {
             char c = s.charAt(i);
 
-            if (c != '«') {
-                sentences.add(Arrays.stream(toKeyEvent(c))
-                        .boxed()
-                        .collect(toList()));
-            } else {
+            if (c == '«') {
                 ++i;
                 int start = i;
                 List<Integer> seq = new ArrayList<>();
@@ -84,6 +80,10 @@ public class Robotonous {
                 }
                 sentences.add(seq);
                 i = end;
+            } else {
+                sentences.add(Arrays.stream(toKeyEvent(c))
+                        .boxed()
+                        .collect(toList()));
             }
         }
 
