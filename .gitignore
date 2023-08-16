@@ -1,2 +1,3 @@
 ## Ignore Java .class files
 *.class
+bin/
