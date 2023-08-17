@@ -26,6 +26,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
 import java.awt.Robot;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -37,11 +40,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 public class Robotonous {
+    private static final int ACTION_DELAY = -1;
+    private static final int ACTION_PASTE = -2;
+
     private final Robot robot;
+    private final Clipboard clipboard;
     private Long startTime;
 
-    public Robotonous(Robot robot) {
+    public Robotonous(Robot robot, Clipboard clipboard) {
         this.robot = robot;
+        this.clipboard = clipboard;
         this.startTime = null;
     }
 
@@ -80,6 +88,19 @@ public class Robotonous {
                 }
                 sentences.add(seq);
                 i = end;
+            } else if (c == '‹') {
+                // insert contents into the system clipboard
+                ++i;
+                int start = i;
+                int end = s.indexOf('›', start);
+                List<Integer> seq = new ArrayList<>();
+                seq.add(ACTION_PASTE);
+                String pasteContents = s.substring(start, end);
+                pasteContents.chars()
+                        .boxed()
+                        .forEach(seq::add);
+                sentences.add(seq);
+                i = end;
             } else {
                 sentences.add(Arrays.stream(toKeyEvent(c))
                         .boxed()
@@ -104,18 +125,16 @@ public class Robotonous {
     }
 
     private void typeChord(int[] chord) {
+        if (chord[0] < 0) {
+            nonKeyEvent(chord);
+            return;
+        }
+
         Arrays.stream(chord)
-                .forEach(key -> {
-                    if (key < 0) {
-                        robot.delay(Math.abs(key));
-                    } else {
-                        robot.keyPress(key);
-                    }
-                });
+                .forEach(robot::keyPress);
 
         IntStream.iterate(chord.length - 1, i -> i >= 0, i -> i - 1)
                 .map(i -> chord[i])
-                .filter(key -> key > 0)
                 .forEach(robot::keyRelease);
     }
 
@@ -138,7 +157,7 @@ public class Robotonous {
         if (c >= '①' && c <= '⑳') {
             int diff = c - '①';
             int val = diff + 1;
-            return new int[] { val * -100 };
+            return new int[] { ACTION_DELAY, val };
         }
 
         return switch (c) {
@@ -186,17 +205,34 @@ public class Robotonous {
             default ->
                 throw new IllegalArgumentException("Unknown character: " + c);
             };
+    }
+
+    private void nonKeyEvent(int[] chord) {
+        int command = chord[0];
+
+        switch (command) {
+            case ACTION_DELAY -> Arrays.stream(chord, 1, chord.length)
+                    .forEach(delay -> robot.delay(delay * 100));
+            case ACTION_PASTE -> {
+                var contents = new StringBuilder(chord.length - 1);
+                Arrays.stream(chord, 1, chord.length)
+                        .forEach(kc -> contents.append((char) kc));
+                var pasteContents = new StringSelection(contents.toString());
+                clipboard.setContents(pasteContents, null);
+            }
+            default -> throw new IllegalArgumentException("Unknown command " + command);
         }
     }
 
     public static void main(String[] args) throws Exception {
         var robot = new Robot();
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         for (int i = 0; i < 5; ++i) {
             System.out.println("Sleeping for 1 seconds...");
             robot.delay(1000);
         }
 
-        var r = new Robotonous(robot);
+        var r = new Robotonous(robot, clipboard);
         for (var filename : args) {
             var contents = Files.readString(Paths.get(filename), UTF_8);
             r.type(contents);
