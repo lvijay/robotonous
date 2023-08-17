@@ -80,7 +80,7 @@ public class Robotonous {
                 ++i;
                 int start = i;
                 List<Integer> seq = new ArrayList<>();
-                int end = s.indexOf('»', start);
+                int end = s.indexOf('»', start); // FIXME use « to mark end
                 for (int j = start; j < end; ++j) {
                     for (int keycode : toKeyEvent(s.charAt(j))) {
                         seq.add(keycode);
@@ -227,8 +227,8 @@ public class Robotonous {
     public static void main(String[] args) throws Exception {
         var robot = new Robot();
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        for (int i = 0; i < 5; ++i) {
-            System.out.println("Sleeping for 1 seconds...");
+        for (int i = 5; i > 0; --i) {
+            System.out.println("Starting in " + i + "...");
             robot.delay(1000);
         }
 
