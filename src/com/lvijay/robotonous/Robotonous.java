@@ -76,35 +76,42 @@ public class Robotonous {
         for (int i = 0; i < s.length(); ++i) {
             char c = s.charAt(i);
 
-            if (c == '«') {
-                ++i;
-                int start = i;
-                List<Integer> seq = new ArrayList<>();
-                int end = s.indexOf('»', start); // FIXME use « to mark end
-                for (int j = start; j < end; ++j) {
-                    for (int keycode : toKeyEvent(s.charAt(j))) {
-                        seq.add(keycode);
+            try {
+                if (c == '«') {
+                    ++i;
+                    int start = i;
+                    List<Integer> seq = new ArrayList<>();
+                    int end = s.indexOf('»', start); // FIXME use « to mark end
+                    for (int j = start; j < end; ++j) {
+                        for (int keycode : toKeyEvent(s.charAt(j))) {
+                            seq.add(keycode);
+                        }
                     }
+                    sentences.add(seq);
+                    i = end;
+                } else if (c == '‹') { // add contents to system clipboard
+                    ++i;
+                    int start = i;
+                    int end = s.indexOf('›', start);
+                    List<Integer> seq = new ArrayList<>();
+                    seq.add(ACTION_PASTE);
+                    String pasteContents = s.substring(start, end);
+                    pasteContents.chars()
+                            .boxed()
+                            .forEach(seq::add);
+                    sentences.add(seq);
+                    i = end;
+                } else if (c == '⊫') { // comment line
+                    int end = s.indexOf('\n', i);
+                    i = end;
+                } else {
+                    sentences.add(Arrays.stream(toKeyEvent(c))
+                            .boxed()
+                            .collect(toList()));
                 }
-                sentences.add(seq);
-                i = end;
-            } else if (c == '‹') {
-                // insert contents into the system clipboard
-                ++i;
-                int start = i;
-                int end = s.indexOf('›', start);
-                List<Integer> seq = new ArrayList<>();
-                seq.add(ACTION_PASTE);
-                String pasteContents = s.substring(start, end);
-                pasteContents.chars()
-                        .boxed()
-                        .forEach(seq::add);
-                sentences.add(seq);
-                i = end;
-            } else {
-                sentences.add(Arrays.stream(toKeyEvent(c))
-                        .boxed()
-                        .collect(toList()));
+            } catch (IllegalArgumentException e) {
+                System.err.printf("Exception at index %d%n", i);
+                throw e;
             }
         }
 
