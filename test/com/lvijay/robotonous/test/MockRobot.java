@@ -21,6 +21,7 @@ public class MockRobot extends Robot {
         KEY_PRESS,
         KEY_RELEASE,
         DELAY,
+        PASTE,
         ;
     }
 
@@ -87,5 +88,9 @@ public class MockRobot extends Robot {
     @Override
     public void delay(int ms) {
         records.add(new Pair(DELAY, ms));
+    }
+
+    void addEvent(Event event, String data) {
+        records.add(new Pair(event, data));
     }
 }
