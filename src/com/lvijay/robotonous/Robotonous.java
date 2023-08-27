@@ -188,6 +188,18 @@ public class Robotonous {
             return new int[] { ACTION_DELAY, val };
         }
 
+        if (c >= '㉑' && c <= '㉟') { // 12881...12895
+            int diff = c - '㉑';
+            int val = diff + 21;
+            return new int[] { ACTION_DELAY, val };
+        }
+
+        if (c >= '㊱' && c <= '㊿') { // 12977...12991
+            int diff = c - '㊱';
+            int val = diff + 36;
+            return new int[] { ACTION_DELAY, val };
+        }
+
         return switch (c) {
             case KEY_CONTROL   -> new int[] { VK_CONTROL };
             case KEY_ALT       -> new int[] { VK_ALT };
@@ -232,7 +244,7 @@ public class Robotonous {
             case '~' -> new int[] { VK_SHIFT, VK_BACK_QUOTE };
             default ->
                 throw new IllegalArgumentException("Unknown character: " + c);
-            };
+        };
     }
 
     private void nonKeyEvent(int[] chord) {
