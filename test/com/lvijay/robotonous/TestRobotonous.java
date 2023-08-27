@@ -75,11 +75,15 @@ public class TestRobotonous {
     @SuppressWarnings("unused")
     private void testPaste() {
         this.robot.clearRecords();
-        robotonous.type("〈abcdEFGhij!@#$)<>…“”‘’〉");
+        robotonous.type("¶abcdEFGhij!@#$)<>…“”‘’¶");
         List<Pair> records = this.robot.records();
 
         assert records.equals(List.of(
-                new Pair(Event.PASTE, "abcdEFGhij!@#$)<>…“”‘’")
+                new Pair(Event.PASTE, "abcdEFGhij!@#$)<>…“”‘’"),
+                new Pair(Event.KEY_PRESS, "" + KeyEvent.VK_META),
+                new Pair(Event.KEY_PRESS, "" + KeyEvent.VK_V),
+                new Pair(Event.KEY_RELEASE, "" + KeyEvent.VK_V),
+                new Pair(Event.KEY_RELEASE, "" + KeyEvent.VK_META)
             ));
     }
 }

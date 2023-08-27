@@ -8,22 +8,21 @@ import static java.awt.event.KeyEvent.VK_BACK_SPACE;
 import static java.awt.event.KeyEvent.VK_CLOSE_BRACKET;
 import static java.awt.event.KeyEvent.VK_COMMA;
 import static java.awt.event.KeyEvent.VK_CONTROL;
+import static java.awt.event.KeyEvent.VK_DELETE;
 import static java.awt.event.KeyEvent.VK_ENTER;
 import static java.awt.event.KeyEvent.VK_EQUALS;
-import static java.awt.event.KeyEvent.VK_LEFT;
+import static java.awt.event.KeyEvent.VK_ESCAPE;
 import static java.awt.event.KeyEvent.VK_META;
 import static java.awt.event.KeyEvent.VK_MINUS;
 import static java.awt.event.KeyEvent.VK_OPEN_BRACKET;
 import static java.awt.event.KeyEvent.VK_PERIOD;
 import static java.awt.event.KeyEvent.VK_QUOTE;
-import static java.awt.event.KeyEvent.VK_RIGHT;
 import static java.awt.event.KeyEvent.VK_SEMICOLON;
 import static java.awt.event.KeyEvent.VK_SHIFT;
 import static java.awt.event.KeyEvent.VK_SLASH;
 import static java.awt.event.KeyEvent.VK_SPACE;
 import static java.awt.event.KeyEvent.VK_TAB;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.stream.Collectors.toList;
 
 import java.awt.Robot;
 import java.awt.Toolkit;
@@ -42,6 +41,17 @@ import java.util.stream.IntStream;
 public class Robotonous {
     private static final int ACTION_DELAY = -1;
     private static final int ACTION_PASTE = -2;
+    private static final char COMMENT_LINE = '©';
+    private static final char AXN_CHORD = '«';
+    private static final char AXN_COPY = '¶';
+    // private static final char AXN_MOUSEMOVE = '';
+    private static final char KEY_CONTROL = '¢';
+    private static final char KEY_ALT = 'æ';
+    private static final char KEY_SHIFT = '§';
+    private static final char KEY_META = '⌘';
+    private static final char KEY_ESCAPE = '£';
+    private static final char KEY_BACKSPACE = '‹';
+    private static final char KEY_DELETE = '›';
 
     private final Robot robot;
     private final Clipboard clipboard;
@@ -77,11 +87,11 @@ public class Robotonous {
             char c = s.charAt(i);
 
             try {
-                if (c == '«') {
+                if (c == AXN_CHORD) {
                     ++i;
                     int start = i;
                     List<Integer> seq = new ArrayList<>();
-                    int end = s.indexOf('»', start); // FIXME use « to mark end
+                    int end = s.indexOf(AXN_CHORD, start);
                     for (int j = start; j < end; ++j) {
                         for (int keycode : toKeyEvent(s.charAt(j))) {
                             seq.add(keycode);
@@ -89,10 +99,10 @@ public class Robotonous {
                     }
                     sentences.add(seq);
                     i = end;
-                } else if (c == '‹') { // add contents to system clipboard
+                } else if (c == AXN_COPY) { // add contents to system clipboard
                     ++i;
                     int start = i;
-                    int end = s.indexOf('›', start);
+                    int end = s.indexOf(AXN_COPY, start);
                     List<Integer> seq = new ArrayList<>();
                     seq.add(ACTION_PASTE);
                     String pasteContents = s.substring(start, end);
@@ -100,14 +110,15 @@ public class Robotonous {
                             .boxed()
                             .forEach(seq::add);
                     sentences.add(seq);
+                    sentences.add(getPasteSentence());
                     i = end;
-                } else if (c == '⊫') { // comment line
+                } else if (c == COMMENT_LINE) { // ignore until end of line
                     int end = s.indexOf('\n', i);
                     i = end;
                 } else {
                     sentences.add(Arrays.stream(toKeyEvent(c))
                             .boxed()
-                            .collect(toList()));
+                            .toList());
                 }
             } catch (IllegalArgumentException e) {
                 System.err.printf("Exception at index %d%n", i);
@@ -123,6 +134,16 @@ public class Robotonous {
         } // TODO use List.stream to convert this into an int[][] array
 
         return result;
+    }
+
+    // TODO FIXME this is Mac OS X specific
+    private List<Integer> getPasteSentence() {
+        int[] meta = toKeyEvent(KEY_META); // ⌘v on Mac OS X
+        int[] v = toKeyEvent('v');
+        int[] result = new int[meta.length + v.length];
+        System.arraycopy(meta, 0, result, 0, meta.length);
+        System.arraycopy(v, 0, result, meta.length, v.length);
+        return Arrays.stream(result).boxed().toList();
     }
 
     private void typeSentence(int[][] sentence) {
@@ -167,14 +188,26 @@ public class Robotonous {
             return new int[] { ACTION_DELAY, val };
         }
 
+        if (c >= '㉑' && c <= '㉟') { // 12881...12895
+            int diff = c - '㉑';
+            int val = diff + 21;
+            return new int[] { ACTION_DELAY, val };
+        }
+
+        if (c >= '㊱' && c <= '㊿') { // 12977...12991
+            int diff = c - '㊱';
+            int val = diff + 36;
+            return new int[] { ACTION_DELAY, val };
+        }
+
         return switch (c) {
-            case 'Λ' -> new int[] { VK_CONTROL };
-            case '⌥' -> new int[] { VK_ALT };
-            case '⌘' -> new int[] { VK_META };
-            case '⇧' -> new int[] { VK_SHIFT };
-            case '→' -> new int[] { VK_RIGHT };
-            case '←' -> new int[] { VK_LEFT };
-            case '⌫' -> new int[] { VK_BACK_SPACE };
+            case KEY_CONTROL   -> new int[] { VK_CONTROL };
+            case KEY_ALT       -> new int[] { VK_ALT };
+            case KEY_META      -> new int[] { VK_META };
+            case KEY_SHIFT     -> new int[] { VK_SHIFT };
+            case KEY_BACKSPACE -> new int[] { VK_BACK_SPACE };
+            case KEY_DELETE    -> new int[] { VK_DELETE };
+            case KEY_ESCAPE    -> new int[] { VK_ESCAPE };
             case '\n'-> new int[] { VK_ENTER };
             case '\t'-> new int[] { VK_TAB };
             case ' ' -> new int[] { VK_SPACE };
@@ -211,7 +244,7 @@ public class Robotonous {
             case '~' -> new int[] { VK_SHIFT, VK_BACK_QUOTE };
             default ->
                 throw new IllegalArgumentException("Unknown character: " + c);
-            };
+        };
     }
 
     private void nonKeyEvent(int[] chord) {
