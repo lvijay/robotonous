@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 public record SpecialKeys(
-        char commentLineKey,
+        char keyCommentLine,
         char keyAction,
         char keyCopy,
         char keyControl,
@@ -12,6 +12,8 @@ public record SpecialKeys(
         char keyShift,
         char keyMeta,
         char keyEscape,
+        char keyReturn,
+        char keyTab,
         char keyBackspace,
         char keyDelete,
         String pasteChord) {
@@ -24,16 +26,14 @@ public record SpecialKeys(
                 keyShift,
                 keyMeta,
                 keyEscape,
+                keyReturn,
+                keyTab,
                 keyBackspace,
                 keyDelete);
         var skeys = Set.copyOf(keys);
 
         if (keys.size() != skeys.size()) {
             throw new IllegalArgumentException("keys must be unique " + keys);
-        }
-
-        if (keyAction == keyCopy) {
-            throw new IllegalArgumentException("Action keys must be unique");
         }
 
         // TODO ensure pasteChord doesn't collide with the other keys

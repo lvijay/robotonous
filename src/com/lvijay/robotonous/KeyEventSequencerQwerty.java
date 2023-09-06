@@ -44,7 +44,7 @@ public record KeyEventSequencerQwerty(SpecialKeys keys)
             return new Action(VK_SHIFT, arguments[0]);
         }
 
-        if (c >= '①' && c <= '⑳') {
+        if (c >= '①' && c <= '⑳') { // 9312...9331
             int diff = c - '①';
             int val = diff + 1;
             return new Action(Event.DELAY, val);
@@ -69,6 +69,8 @@ public record KeyEventSequencerQwerty(SpecialKeys keys)
         if (c == keys.keyBackspace()) { return new Action(VK_BACK_SPACE); }
         if (c == keys.keyDelete())    { return new Action(VK_DELETE);     }
         if (c == keys.keyEscape())    { return new Action(VK_ESCAPE);     }
+        if (c == keys.keyReturn())    { return new Action(VK_ENTER);      }
+        if (c == keys.keyTab())       { return new Action(VK_TAB);        }
 
         return switch (c) {
             case '\n'-> new Action(VK_ENTER);
