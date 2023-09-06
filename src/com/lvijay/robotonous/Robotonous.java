@@ -59,7 +59,7 @@ public class Robotonous {
                             .toArray();
                     actions.add(new Action(Event.PASTE, pastechars));
                     i = end;
-                } else if (c == keys.commentLineKey()) { // ignore until end of line
+                } else if (c == keys.keyCommentLine()) { // ignore until end of line
                     int end = s.indexOf('\n', i);
                     i = end;
                 } else {

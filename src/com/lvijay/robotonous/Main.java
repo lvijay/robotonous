@@ -8,28 +8,11 @@ import java.awt.Toolkit;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
 
 public class Main {
-    public static final SpecialKeys SCHEME_1 = new SpecialKeys(
-            '©', // commentLineKey
-            '«', // actionChord
-            '¶', // actionCopy
-            '¢', // keyControl
-            'æ', // keyAlt
-            '§', // keyShift
-            '±', // keyMeta
-            'ƒ', // keyEscape
-            '‹', // keyBackspace
-            '›', // keyDelete
-            "¢y" // pasteChord
-    );
-
     public static void main(String[] args) throws AWTException, IOException {
-        var sequencer = new KeyEventSequencerQwerty(SCHEME_1);
         var robot = new Robot();
         var clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        var executor = new Robotonous(SCHEME_1, sequencer, robot, clipboard);
 
         for (int i = 3; i > 0; i--) {
             System.out.println("starting in " + i + " seconds");
@@ -37,8 +20,10 @@ public class Main {
         }
 
         for (String file : args) {
-            String contents = Files.readString(Paths.get(file), UTF_8);
-            List<Action> actions = executor.toActions(contents);
+            var contents = Contents.toContents(Files.readString(Paths.get(file), UTF_8));
+            var sequencer = new KeyEventSequencerQwerty(contents.keys());
+            var executor = new Robotonous(contents.keys(), sequencer, robot, clipboard);
+            var actions = executor.toActions(contents.body());
 
             executor.execute(actions);
         }

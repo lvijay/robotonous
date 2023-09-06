@@ -13,6 +13,7 @@ public record Action(Event event, int... arguments) {
         this(Event.TYPE, arguments);
     }
 
+    // debugging functions
     @Override
     public String toString() {
         String args = switch (event) {
