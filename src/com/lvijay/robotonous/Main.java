@@ -21,7 +21,7 @@ public class Main {
             thread.setDaemon(true);
             return thread;
         });
-        var tcpSpeak = new TcpAlongside(8989);
+        var tcpSpeak = new TcpAlongside(8989); // assumes festival running on 8989
         Map<String, Alongside> sides = Map.of(
                 "speak", arg -> tcpSpeak.execute(String.format("(SayText \"%s\")", arg)));
 

@@ -15,7 +15,10 @@ import java.util.concurrent.TimeUnit;
 public class TcpAlongside implements Alongside {
     private final int port;
 
-    public TcpAlongside(int port) {
+    public TcpAlongside(int port) throws IOException {
+        try (var c = SocketChannel.open(new InetSocketAddress(port))) {
+            // throws an exception if a server isn't running on port
+        }
         this.port = port;
     }
 

@@ -46,9 +46,9 @@ public record Contents(String header, String body, SpecialKeys keys) {
         var keyAlt = get(KEY_ALT.matcher(header), "æ");
         var keyShift = get(KEY_SHIFT.matcher(header), "§");
         var keyMeta = get(KEY_META.matcher(header), "±");
-        var keyEscape = get(KEY_ESCAPE.matcher(header), "ƒ");
-        var keyReturn = get(KEY_NEWLINE.matcher(header), "⮐");
-        var keyTab = get(KEY_TAB.matcher(header), "™");
+        var keyEscape = get(KEY_ESCAPE.matcher(header), "␛");
+        var keyReturn = get(KEY_NEWLINE.matcher(header), "␍");
+        var keyTab = get(KEY_TAB.matcher(header), "␉");
         var keyBackspace = get(KEY_BACKSPACE.matcher(header), "‹");
         var keyDelete = get(KEY_DELETE.matcher(header), "›");
         // TODO set this in an OS dependent manner
