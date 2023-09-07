@@ -69,7 +69,7 @@ public record KeyEventSequencerQwerty(SpecialKeys keys)
         if (c == keys.keyBackspace()) { return new Action(VK_BACK_SPACE); }
         if (c == keys.keyDelete())    { return new Action(VK_DELETE);     }
         if (c == keys.keyEscape())    { return new Action(VK_ESCAPE);     }
-        if (c == keys.keyReturn())    { return new Action(VK_ENTER);      }
+        if (c == keys.keyNewline())   { return new Action(VK_ENTER);      }
         if (c == keys.keyTab())       { return new Action(VK_TAB);        }
 
         return switch (c) {
