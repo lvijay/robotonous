@@ -1,176 +1,142 @@
-Robotonous
-----------
+# Robotonous
 
-Autonomous actions on the computer using `java.awt.Robot`.
+Monotonous computer activities Roboticized.
 
 Have there been times where you'd like to automate many of your typing
 tasks?  Have your actions required coordination across windows — type
 a few letters here, click on the other window, wait a few seconds,
 type some more?  Robotonous ~~is~~ might be for you.
 
-## Robotonous
-
 Since Java 1.3, the Java SDK has had the class
-[java.awt.Robot](https://docs.oracle.com/en/java/javase/14/docs/api/java.desktop/java/awt/Robot.html)
-that allows mouse control and text entry.  Robot is low level and
-clunky to use.  This project attempts to make its use easier.
+[java.awt.Robot](https://docs.oracle.com/en/java/javase/17/docs/api/java.desktop/java/awt/Robot.html)
+that allows mouse control and text entry.  Robot is low level.  For
+instance, I'd like to make the computer _type_ something but Robot
+doesn't have a `type` API.  Adding those capabilities is Robotonous's
+main contribution.
+
+**Note**: Robotonous is in early stages of development and use.  It is
+messy and not easy to use.  At the current state its features are
+powered more for my usecases (my YouTube channel) than for usability.
+That said it has improved with each video produced.
 
 ## Building
+Java 17 is the minimum required version for Robotonous because it uses
+switch expressions.
 
 ```shell
-javac -g -cp lib/jsexp-0.2.2.jar:src -d bin src/robotonous/Robotonous.java
+javac -d bin `find src -type f -name '*.java'`
 ```
 
 ## Running
-
-Running the program is as shown below.  It expects input as lisp forms
-(technically, S-Expressions).  If no file is provided, users are
-dropped into a REPL with... odd results.  See
+Running the program is as shown below.  See
 [§Instructions](#instructions) for details.
 
 ```shell
-java -cp lib/jsexp-0.2.2.jar:bin robotonous.Robotonous instructions.lisp
+java -cp bin com.lvijay.robotonous.Main instructions.robo
 ```
 
 ## Instructions
+Robotonous expects typing instructions in ascii text, specifically a
+typical 104 key qwerty keyboard layout with unicode keys issuing
+special commands.  When Robotonous encounters ordinary keyboard
+characters, it will type them the same way a human might.  For
+instance, the string `Hello!` will result in typing `SHIFT h` followed
+by `e`, `l`, `l`, `o`, and finally `SHIFT 1`.  (On my US-English
+qwerty keyboard `!` is typed by pressing `SHIFT` and `1` together.)
 
-Robotonous expects arguments as lisp forms.  All instructions are
-specified as Lisp-style lists.
+See a sample video below.
 
-### Sidebar on Lisp lists
-A list in Lisp family of programming languages is anything encased in
-parentheses.  For instance, `(a b c d)` is a list with 4 elements:
-`a`, `b`, `c`, and `d`.  `(e (f (g h) i) j)` is a list with 3
-elements: `e`, `(f (g h) i)`, and `j`.  The second element in this
-list is itself a list with 3 elements.  Whitespace between elements is
-ignored.
+![Example of robotonous in action.  Shows robotonous typing "hello world" in a text document](./docs/example1.gif)
 
-### Robotonous syntax
-In Robotonous, instructions to the robot are specified in lists.
-Every list starts with a command followed by arguments to that
-command. A `command`, which can be typing, moving a mouse, clicking a
-mouse, or waiting defines what to do with its arguments.  For example,
-if you want to type the programmers favorite string, `hello, world!`,
-you specify it with the lisp form, `(:type "hello, world!")`.  Lists
-are useful especially for cases where you want to do multiple things
-together.  For instance, if you want to press down the keys _Ctrl_,
-_Alt_, and _d_, use `(:type (:ctrl (:alt d)))`.  If you want to click
-on some location while holding down the _Shift_ key, use `(:type
-(:shift (:mousemove 100 200) (:mouseclick :left)))`.
+Typing keyboard keys is straightforward.  The keys as they appear will
+be typed.
 
-Robotonous commands start with `:`.  The following commands are
-supported:
+### Chording
 
-- `:type` — types the letters as is.
-  + Individual words are typed as they are with whitespace between
-    them ignored.  So, `(:type one two Three)` types `onetwoThree`.
-  + doublequotes (`"`) and pipes (`|`) are two ways to type including
-    whitespace.  So, `(:type "abcd efgh")` types `abcd efgh` and
-    `(:type |"AGPLv3" license used here|)` types `"AGPLv3" license
-    used here`.  It is also the simplest way to type pipes and
-    doublequotes.  See
-    [§Whitespace](#whitespace-and-other-special-cases), below for
-    details.
-  + Since Robot simulates actual key presses, upper case letters are
-    typed as if pressing shift followed by the letter.  The following
-    examples are all equivalent, feel free to use them
-    interchangeably.
-    - `(:type (:shift a))` is the same as `(:type A)`
-    - `(:type "#(abcd)")` is the same as `(:type (:shift 39) abcd
-      (:shift 0)) ` though the former is more convenient.
-  + **Subcommands** are ways to type control characters — keys you
-    must keep pressed when typing other keys.  These include special
-    characters like `!@#$%^` and most keyboard shortcuts.  For
-    instance, to press control, alt, and 4, use `(:ctrl (:alt 4))`.
-    At this time, the following subcommands are supported:
-    - :ctrl
-    - :alt
-    - :meta — The Command key on Mac keyboards and Windows key on
-      windows keyboards.
-    - :shift
-  + **Specials** are ways to type characters that you can't represent
-    easily.  These include the arrow keys, the Escape key among
-    others.  The following special keys are supported:
-    - :left — type the left arrow
-    - :right — type the right arrow
-    - :up — type the up arrow
-    - :down — type the down arrow
-    - :backspace
-    - :space
-    - :enter
-    - :home
-    - :end
-    - :pageup
-    - :pagedown
-    - :delete
-    - :pipe — type `|`.
-- `:mousemove` — moves the mouse to the given x y position.
-  `(:mousemove 100 200)` moves the mouse cursor to x=100, y=200.
-- `:mouseclick` — clicks the specified mouse key.  The mousekeys are
-  defined with
-  + :left — left click button
-  + :right — right click button
-  + :middle — middle click button
+Typing multiple keys at once is known as
+[chording](https://www.emacswiki.org/emacs/Chord).  Ever typed the
+keyboard shortcuts for Cut/Copy/Paste?  You've key chorded.
 
-  To double click, use `(:mouseclick :left :left)`.  To press both
-  left and right buttons together, use `(:mouseclick (:left
-  (:right)))`.
-- `:delay` — sleeps for milliseconds.  `(:delay 1000)` sleeps for
-   1000 milliseconds.
-- `:typeline` — same as `:type` and types a newline at the end of all
-  its instructions.
+To chord in Robotonous you enter a special character, `«` is the
+default character (it can be customized, see
+[§Customizations](#customizations) below).  A character sequence that
+starts with `«` and ends with `«` be typed together.  The default
+character for the SHIFT key is `§`, the chord `«§abcdef«` types out
+ABCDEF.  Similarly, the chord `«¢c«` types `CTRL C` because `¢` is the
+default character for the [`CTRL`
+key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_CONTROL).
 
-Keeping with traditional Lisp convention, all content from a semicolon
-until the end of line is ignored as a comment.
+### Special keys
 
-### Whitespace and other special cases
+Robotonous uses non-ascii characters – technically Unicode character
+code points past Basic Latin – to type modifier keys (CTRL, ALT,
+SHIFT, ...) and other special keys (ESCAPE, BACKSPACE...).
 
-As in lisp, Robotonous ignores whitespaces between tokens.  So,
-`(:type a b c d)` will type out `abcd`.  There are two ways to respect
-whitespaces:
+The available controls, their default keys, and purpose are described
+in the table below.
 
-1. Double quotes — The `"` character defines a string.  Content within
-   it is treated literally.  For instance, `(:type "a b c d")` will
-   type `a b c d`. Commands and subcommands are ignored and treated as
-   ordinary characters to be typed out too.  `(:type ":end :(shift
-   4)")` literally types `":end :(shift 4)"`.  Backslashes are treated
-   literally too.  `"\n"` is treated as a String of two characters:
-   `\` followed by `n`.
+| Key Name       | Default key | Documentation |
+| :---           | :---: | :--- |
+| keyCommentLine | © | Ignores all content until the end of the line.
+| keyChord       | « | Initiates a chord.  Reuse the character to indicate termination of the chord.  `«§123«` types `SHIFT 1 2 3` |
+| keyCopy        | ¶ | Seeing text appear on the screen one key at a time gets boring fast.  For a (literally) graphic illustration of slow character by character viewing see my first [robotonous video](https://www.youtube.com/watch?v=esILqJRuvN4).  Robotonous's Copy/Paste feature allows rapid text insertion.  `hello, ¶world!¶` executes as `h e l l o, SPACE world!`.  See [Paste example](#paste-example) to see it in action. |
+| keyAsideInit   | γ | See [§Aside](#aside) below. |
+| keyAsideWait   | ω | See [§Aside](#aside) below. |
+| keyControl     | ¢ | Represents the [CTRL key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_CONTROL) |
+| keyAlt         | æ | Represents the [Alt or Option key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_ALT) |
+| keyShift       | § | Represents the [SHIFT key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_SHIFT) |
+| keyMeta        | ± | Represents the [META key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_META) |
+| keyEscape      | ␛ | Represents the [ESCAPE key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_ESCAPE) |
+| keyNewline     | ␊ | In normal text, Robotonous will just type a newline when it encounters the `\n` character.  In more complicated key chord usecases (specifically, in ones involving GNU Screen) I found a character easier to use and read.  I think you can get by using Robotonous and never need this key.  <br>Represents the [RETURN key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_ENTER) |
+| keyTab         | ␉ | A simple way to make Robotonous enter TAB (ASCII Character 9, '\t').  Unlike newlines, this is actually useful because TABs are otherwise indistinguishable from spaces. |
+| keyBackspace   | ‹ | Represents the [Backspace key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_BACK_SPACE) |
+| keyDelete      | › | Represents the [Delete key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_DELETE) |
+| pasteChord     | keyMeta + "v" | Defaults to the Mac OS X's ⌘v because that's the computer I'm using.  Customize to suit your OS.  Ideally, this should default itself in an OS dependent manner with customization support in contextual environments (GNU Emacs uses CTRL Y to paste, for eg.) PRs welcome. |
 
-   Is there no way to type a double quote, then?  How do you escape
-   characters?
+Many keys, such as the arrow keys and function keys, are unrepresented
+and unsupported if only because a usecase was pending.  PRs welcome.
 
-   Excellent questions.  I'll answer the latter first.  Robotonous
-   provides no means to escape the content of strings.  However,
-   alternatives do exist.  That will answer the former question.
-   And the answer is
-2. pipes — The `|` character also defines a string.  Everything that
-   applied to double quotes above also applies to the pipe.  So you
-   can type a double quote by encasing it in a pipe like so: `(:type
-   |"|)` and you can type a pipe by encasing it in double quotes:
-   `(:type "|")`.
+#### Paste example
+An example of the paste action.
 
-   But how do I type `|"`, you ask?  There are several ways to do
-   this, some of which are shown below.
+![paste action](./docs/examplePaste.gif)
 
-```lisp
-(:type "|" |"|)               ;; solution 1, ugly, not recommended
-(:type (:shift ') (:shift \)) ;; solution 2
+The string encased between two ¶ (`PILCROW SIGN` characters) is
+inserted into the system clipboard and pasted.  This is much quicker
+than typing character by character.
+
+### Customizations
+
+Robotonous supports customizing the Unicode character representing a
+special key.  At the start of a file, give the key name (column 1 in
+[§Special Keys](#special-keys) above) `=` and your preferred Unicode
+character.  Use four hyphens on a separate line to show the
+customizations section is over.  For example:
+
+```
+keyMeta = ⌘
+----
 ```
 
-## Demo
+In the above, the
+[META](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_META)
+key alone is customized.  The Unicode character PLACE OF INTEREST
+represents it.
+
+### Asides
 
 TBD
 
 # History
 
-Recently, I pulled off a git "magic trick".  It was screen recorded
-and shared as a YouTube video.  The entire narration was done typing
-on a screen.  Now, I type fast, but it's a different story when
-recording for an audience.  I made too many mistakes while recording.
-(Performance art is _hard_.  Who knew?)  The software engineer's credo
-is, of course, don't do manually what you can make a computer do and
-thus was born Robotonous.
+In 2020, I pulled off a git "[magic
+trick](https://www.youtube.com/watch?v=esILqJRuvN4)".  It was screen
+recorded and shared as a YouTube video.  The entire narration was done
+typing on a screen.  Now, I type fast, but I also make many mistakes
+and typos and I made too many mistakes while recording.  (Performance
+art is _hard_.  Who knew?)  The software engineer's credo is don't do
+manually what you can make a computer do.  And thus was born
+Robotonous.
 
 ## The git video
 Click the image below.

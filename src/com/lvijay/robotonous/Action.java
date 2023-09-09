@@ -7,6 +7,7 @@ import static java.awt.event.KeyEvent.VK_SHIFT;
 import static java.util.stream.Collectors.joining;
 
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 public record Action(Event event, int... arguments) {
     public Action(int... arguments) {
@@ -18,18 +19,22 @@ public record Action(Event event, int... arguments) {
     public String toString() {
         String args = switch (event) {
             case DELAY -> String.valueOf(Arrays.stream(arguments).sum());
-            case PASTE -> Arrays.stream(arguments)
-                    .boxed()
-                    .collect(
-                            () -> new StringBuilder(),
-                            (b, c) -> b.append((char) c.intValue()),
-                            (s1, s2) -> s1.append(s2.toString()))
-                    .toString();
+            case PASTE -> asString();
             case TYPE -> Arrays.stream(arguments)
                     .mapToObj(i -> "'" + charName(i) + "'")
                     .collect(joining(" ", "[", "]"));
+            case ASIDE_INIT -> String.format("Aside execution of %s", asString());
+            case ASIDE_WAIT -> "";
         };
         return String.format("<%s %s>", event, args);
+    }
+
+    private String asString() {
+        char[] chars = new char[arguments.length];
+        IntStream.range(0, arguments.length)
+                .forEach(i -> chars[i] = (char) arguments[i]);
+
+        return new String(chars);
     }
 
     private String charName(int i) {
