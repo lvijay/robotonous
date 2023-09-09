@@ -79,7 +79,7 @@ in the table below.
 | :---           | :---: | :--- |
 | keyCommentLine | © | Ignores all content until the end of the line.
 | keyChord       | « | Initiates a chord.  Reuse the character to indicate termination of the chord.  `«§123«` types `SHIFT 1 2 3` |
-| keyCopy        | ¶ | Seeing text appear on the screen one key at a time is like watching paint dry.  It gets boring fast.  For a (literally) graphic illustration of this problem my first [robotonous video](https://www.youtube.com/watch?v=esILqJRuvN4).  Robotonous's Copy/Paste feature allows rapid text insertion.  `hello, ¶world!¶` executes as `h e l l o, SPACE world!`.  See paste example. |
+| keyCopy        | ¶ | Seeing text appear on the screen one key at a time gets boring fast.  For a (literally) graphic illustration of slow character by character viewing see my first [robotonous video](https://www.youtube.com/watch?v=esILqJRuvN4).  Robotonous's Copy/Paste feature allows rapid text insertion.  `hello, ¶world!¶` executes as `h e l l o, SPACE world!`.  See [Paste example](#paste-example) to see it in action. |
 | keyAsideInit   | γ | See [§Aside](#aside) below. |
 | keyAsideWait   | ω | See [§Aside](#aside) below. |
 | keyControl     | ¢ | Represents the [CTRL key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_CONTROL) |
@@ -95,6 +95,15 @@ in the table below.
 
 Many keys, such as the arrow keys and function keys, are unrepresented
 and unsupported if only because a usecase was pending.  PRs welcome.
+
+#### Paste example
+An example of the paste action.
+
+![paste action](./docs/examplePaste.gif)
+
+The string encased between two ¶ (`PILCROW SIGN` characters) is
+inserted into the system clipboard and pasted.  This is much quicker
+than typing character by character.
 
 ### Customizations
 
