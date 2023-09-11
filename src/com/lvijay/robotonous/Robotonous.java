@@ -40,7 +40,7 @@ public class Robotonous {
         this.clipboard = clipboard;
         this.pasteAction = toActions(
                 keys.keyAction()
-                + keys.pasteChord()
+                + keys.chordPaste()
                 + keys.keyAction());
         this.threadpool = threadpool;
         this.sides = Map.copyOf(sides);

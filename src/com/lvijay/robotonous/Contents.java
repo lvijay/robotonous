@@ -18,7 +18,7 @@ public record Contents(String header, String body, SpecialKeys keys) {
     private static final Pattern KEY_TAB = Pattern.compile("(?m)^\\s*keyTab\\s*=\\s*(.)\\s*$");
     private static final Pattern KEY_BACKSPACE = Pattern.compile("(?m)^\\s*keyBackspace\\s*=\\s*(.)\\s*$");
     private static final Pattern KEY_DELETE = Pattern.compile("(?m)^\\s*keyDelete\\s*=\\s*(.)\\s*$");
-    private static final Pattern PASTE_CHORD = Pattern.compile("(?m)^\\s*pasteChord\\s*=\\s*(.)\\s*$");
+    private static final Pattern CHORD_PASTE = Pattern.compile("(?m)^\\s*chordPaste\\s*=\\s*(.)\\s*$");
     private static final Pattern HEADER_END = Pattern.compile("(?m)^" + Pattern.quote("----") + "$");
 
     public static Contents toContents(String contents) {
@@ -52,7 +52,7 @@ public record Contents(String header, String body, SpecialKeys keys) {
         var keyBackspace = get(KEY_BACKSPACE.matcher(header), "‹");
         var keyDelete = get(KEY_DELETE.matcher(header), "›");
         // TODO set this in an OS dependent manner
-        var pasteChord = get(PASTE_CHORD.matcher(header), keyMeta + "v");
+        var chordPaste = get(CHORD_PASTE.matcher(header), keyMeta + "v");
 
         return new SpecialKeys(
                 keyCommentLine.charAt(0),
@@ -69,7 +69,7 @@ public record Contents(String header, String body, SpecialKeys keys) {
                 keyTab.charAt(0),
                 keyBackspace.charAt(0),
                 keyDelete.charAt(0),
-                pasteChord);
+                chordPaste);
     }
 
     private static String get(Matcher matcher, String defaultValue) {

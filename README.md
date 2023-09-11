@@ -35,6 +35,10 @@ Running the program is as shown below.  See
 java -cp bin com.lvijay.robotonous.Main instructions.robo
 ```
 
+## Usage
+To use, specify instructions in a text file.  Most letters are typed
+as is with special instructions to type special keys.
+
 ## Instructions
 Robotonous expects typing instructions in ascii text, specifically a
 typical 104 key qwerty keyboard layout with unicode keys issuing

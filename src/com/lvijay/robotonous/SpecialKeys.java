@@ -18,7 +18,7 @@ public record SpecialKeys(
         char keyTab,
         char keyBackspace,
         char keyDelete,
-        String pasteChord) {
+        String chordPaste) {
     public SpecialKeys {
         var keys = List.of(
                 keyAction,
