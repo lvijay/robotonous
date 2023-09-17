@@ -37,7 +37,7 @@ public record Action(Event event, int... arguments) {
         return new String(chars);
     }
 
-    private String charName(int i) {
+    private static String charName(int i) {
         return switch (i) {
             case VK_SHIFT -> "SHIFT";
             case VK_CONTROL -> "CTRL";
