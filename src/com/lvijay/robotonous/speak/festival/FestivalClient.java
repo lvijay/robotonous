@@ -50,25 +50,23 @@ public class FestivalClient {
         }
     }
 
-    private FestivalResponse sendInternal(String lisp, InputStream in, OutputStream out)
+    private static FestivalResponse sendInternal(String lisp, InputStream in, OutputStream out)
             throws IOException {
-        {
-            out.write(lisp.getBytes(UTF_8));
+        out.write(lisp.getBytes(UTF_8));
 
-            byte[] endbytes = END.getBytes(US_ASCII);
-            var resp = switch (readStatus(in)) {
-                case "ER" -> new ResponseError();
-                case "OK" -> new ResponseOk();
-                case "WV" -> new ResponseWave(readUntil(in, endbytes));
-                case "LP" -> new ResponseLisp(new String(readUntil(in, endbytes)));
-                default -> throw new IllegalArgumentException();
-            };
+        byte[] endbytes = END.getBytes(US_ASCII);
+        var resp = switch (readStatus(in)) {
+            case "ER" -> new ResponseError();
+            case "OK" -> new ResponseOk();
+            case "WV" -> new ResponseWave(readUntil(in, endbytes));
+            case "LP" -> new ResponseLisp(new String(readUntil(in, endbytes)));
+            default -> throw new IllegalArgumentException();
+        };
 
-            return resp;
-        }
+        return resp;
     }
 
-    private String readStatus(InputStream in) throws IOException {
+    private static String readStatus(InputStream in) throws IOException {
         int c1 = in.read();
         int c2 = in.read();
         int c3 = in.read();
@@ -84,7 +82,7 @@ public class FestivalClient {
         return String.format("%c%c", c1, c2);
     }
 
-    private byte[] readUntil(InputStream in, byte[] endMatch)
+    private static byte[] readUntil(InputStream in, byte[] endMatch)
             throws IOException {
         var bin = new BufferedInputStream(in);
         var out = new ByteArrayOutputStream();
@@ -113,6 +111,7 @@ public class FestivalClient {
         throw new IllegalStateException();
     }
 
+    /* test */
     public static void main(String[] args)
             throws IOException, UnsupportedAudioFileException, LineUnavailableException {
         var client = new FestivalClient(8989);
