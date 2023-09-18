@@ -23,8 +23,8 @@ public record Action(Event event, int... arguments) {
             case TYPE -> Arrays.stream(arguments)
                     .mapToObj(i -> "'" + charName(i) + "'")
                     .collect(joining(" ", "[", "]"));
-            case ASIDE_INIT -> String.format("Aside execution of %s", asString());
-            case ASIDE_WAIT -> "";
+            case SPEAK -> "";
+            case SPEAK_WAIT -> "";
         };
         return String.format("<%s %s>", event, args);
     }

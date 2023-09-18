@@ -1,21 +1,22 @@
 package com.lvijay.robotonous;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.awt.Robot;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
-import com.lvijay.robotonous.asides.Alongside;
+import javax.sound.sampled.SourceDataLine;
+
+import com.lvijay.robotonous.speak.festival.FestivalClient;
 
 public class Robotonous {
     private final SpecialKeys keys;
@@ -24,16 +25,18 @@ public class Robotonous {
     private final Clipboard clipboard;
     private final List<Action> pasteAction;
     private final ExecutorService threadpool;
-    private final Map<String, Alongside> sides;
+    private final FestivalClient festivalClient;
+    private final SourceDataLine audioPlayer;
     private final Queue<Future<Void>> futures;
 
     public Robotonous(
             SpecialKeys keys,
-            KeyEventSequencer sequencer,
+            KeyEventSequencerQwerty sequencer,
             Robot robot,
             Clipboard clipboard,
             ExecutorService threadpool,
-            Map<String, Alongside> sides) {
+            FestivalClient festivalClient,
+            SourceDataLine audioPlayer) {
         this.keys = keys;
         this.sequencer = sequencer;
         this.robot = robot;
@@ -43,7 +46,8 @@ public class Robotonous {
                 + keys.chordPaste()
                 + keys.keyAction());
         this.threadpool = threadpool;
-        this.sides = Map.copyOf(sides);
+        this.festivalClient = festivalClient;
+        this.audioPlayer = audioPlayer;
         this.futures = new LinkedList<>();
     }
 
@@ -78,33 +82,40 @@ public class Robotonous {
                 } else if (c == keys.keyCommentLine()) { // ignore until end of line
                     int end = s.indexOf('\n', i);
                     i = end;
-                } else if (c == keys.keyAsideInit()) {
+                } else if (c == keys.keySpeak()) {
                     int start = ++i;
-                    int end = s.indexOf(keys.keyAsideInit(), start);
-                    String commandString = s.substring(start, end);
-                    int[] command = commandString.chars().toArray();
+                    int end = s.indexOf(keys.keySpeak(), start);
+                    String speakContent = s.substring(start, end);
+                    byte[] audioData = festivalClient.say(speakContent);
 
-                    actions.add(new Action(Event.ASIDE_INIT, command));
+                    actions.add(new Action(
+                            Event.SPEAK,
+                            IntStream.range(0, audioData.length)
+                                .map(idx -> audioData[idx])
+                                .toArray()));
                     i = end;
-                } else if (c == keys.keyAsideWait()) {
+                } else if (c == keys.keySpeakWait()) {
                     long initCounts = actions.stream()
-                            .filter(a -> a.event() == Event.ASIDE_INIT)
+                            .filter(a -> a.event() == Event.SPEAK)
                             .count();
                     long waitCounts = actions.stream()
-                            .filter(a -> a.event() == Event.ASIDE_WAIT)
+                            .filter(a -> a.event() == Event.SPEAK_WAIT)
                             .count();
 
                     if (initCounts <= waitCounts) {
                         throw new IllegalArgumentException("More waits than inits");
                     }
 
-                    actions.add(new Action(Event.ASIDE_WAIT));
+                    actions.add(new Action(Event.SPEAK_WAIT));
                 } else {
                     actions.add(sequencer.toKeyEvent(c));
                 }
             } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
                 System.err.printf("Exception at index %d c=%c%n", i, c);
                 throw e;
+            } catch (IOException e) {
+                System.err.printf("Exception %s at index %d c=%c%n", e, i, c);
+                throw new IllegalStateException(e);
             }
         }
 
@@ -112,14 +123,14 @@ public class Robotonous {
     }
 
     public void execute(List<Action> actions) throws Exception {
-        for (Action action : actions) {
+        for (var action : actions) {
             System.out.println("Executing " + action);
             switch (action.event()) {
                 case DELAY -> delay(action.arguments());
                 case PASTE -> copyPaste(action.arguments());
                 case TYPE -> chord(action.arguments());
-                case ASIDE_INIT -> asideInit(action.arguments());
-                case ASIDE_WAIT -> asideWait();
+                case SPEAK -> speak(action.arguments());
+                case SPEAK_WAIT -> speakWait();
             };
         }
     }
@@ -148,34 +159,36 @@ public class Robotonous {
         execute(pasteAction);
     }
 
-    void asideInit(int[] arguments) {
-        byte[] stringData = new byte[arguments.length];
+    void speak(int[] arguments) {
+        byte[] result = new byte[arguments.length];
         IntStream.range(0, arguments.length)
-                .forEach(i -> stringData[i] = (byte) arguments[i]);
-        var str = new String(stringData, UTF_8);
-        int arg0end = str.indexOf(' ');
-        var asideName = str.substring(0, arg0end);
-        var asideArgs = str.substring(arg0end + 1);
-        var alongside = sides.get(asideName);
-
-        submit(alongside, asideArgs);
+                .forEach(i -> result[i] = (byte) arguments[i]);
+        byte[] soundData = result;
+        submit(soundData);
     }
 
-    void asideWait() throws Exception {
+    void speakWait() throws InterruptedException, ExecutionException {
         Future<Void> head = futures.remove();
 
         head.get(); // indefinite wait
     }
 
-    private void submit(Alongside alongside, String args) {
-        Future<Void> future = threadpool.submit(() -> {
-            try {
-                alongside.execute(args);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }, (Void) null);
+    private void submit(byte[] audio) {
+        var future = threadpool.<Void>submit(() -> play(audio, audioPlayer), null);
 
         futures.add(future);
+    }
+
+    static void play(byte[] audioData, SourceDataLine line) {
+        int lineBufferSize = line.getBufferSize();
+        for (int i = 0; i < audioData.length; ) {
+            int remaining = audioData.length - i;
+            int written = line.write(audioData, i, Math.min(
+                    remaining, lineBufferSize));
+
+            i += written;
+        }
+
+        line.drain();
     }
 }

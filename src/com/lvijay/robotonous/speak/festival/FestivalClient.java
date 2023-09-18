@@ -23,8 +23,6 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
-import com.lvijay.robotonous.speak.Audio;
-
 public class FestivalClient {
     public static final String END = "ft_StUfF_key";
 
@@ -160,15 +158,13 @@ public class FestivalClient {
         LocalTime now = LocalTime.now();
         var msg = now.getHour() + ":" + now.getMinute();
 
-        byte[] sayData = client.say(String.format("The time is %s", msg));
+        byte[] sayData = client.say(String.format("The time is %s.", msg));
 
         Path saveTo = Paths.get("out.wav");
         Files.write(saveTo, sayData,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.WRITE);
-
-        Audio audio = Audio.createAudio(saveTo);
 
         var audioStream = AudioSystem.getAudioInputStream(saveTo.toFile());
         var audioFormat = audioStream.getFormat();
@@ -181,7 +177,18 @@ public class FestivalClient {
 
         wavLine.open(audioFormat);
         wavLine.start();
-        audio.play(wavLine);
+        { /* play audio */
+            int lineBufferSize = wavLine.getBufferSize();
+            for (int i = 0; i < sayData.length; ) {
+                int remaining = sayData.length - i;
+                int written = wavLine.write(sayData, i, Math.min(
+                        remaining, lineBufferSize));
+
+                i += written;
+            }
+
+            wavLine.drain();
+        }
         wavLine.close();
     }
 }
