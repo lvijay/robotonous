@@ -29,19 +29,60 @@ public class FestivalClient {
     public static final String END = "ft_StUfF_key";
 
     private final int port;
+    private final String voice;
+    private final String audioFormat;
 
-    public FestivalClient(int port) {
+    private FestivalClient(int port, String voice, String audioFormat) {
         this.port = port;
+        this.voice = '(' + voice + ')';
+        this.audioFormat = audioFormat;
     }
 
-    public List<FestivalResponse> send(List<String> sexps) throws IOException {
+    public FestivalClient(int port, String voice) {
+        this(port, voice, "(Parameter.set 'Wavefiletype 'riff)");
+    }
+
+    public FestivalClient(int port) {
+        this(port, "voice_cmu_us_aew_cg");
+    }
+
+    public byte[] say(String content) throws IOException {
+        content = content.replace("\"", "\\\""); // poor escaping but it'll do for now
+
+        var setFormat = audioFormat;
+        var setVoice = voice;
+        var getContent = String.format("(tts_textall %c%s%c %cfundamental%c)",
+                '"', content, '"', '"', '"');
+        var emptyComputation = "(= nil nil)";
+
+        List<FestivalResponse> resp = send(List.of(
+                setFormat,
+                setVoice,
+                getContent,
+                emptyComputation
+                ));
+
+        return resp.stream()
+                .filter(r -> r instanceof ResponseWave)
+                .map(r -> (ResponseWave) r)
+                .findFirst()
+                .map(v -> v.wavData())
+                .get();
+    }
+
+    private List<FestivalResponse> send(List<String> sexps) throws IOException {
         try (var socket = new Socket("localhost", port);
                 var in = socket.getInputStream();
                 var out = socket.getOutputStream()) {
             return sexps.stream()
                     .map(lsp -> {
                         try {
-                            return sendInternal(lsp, in, out);
+                            var response = sendInternal(lsp, in, out);
+                            if (response instanceof ResponseOk) {
+                                // ignore OK, go again
+                                return sendInternal(lsp, in, out);
+                            }
+                            return response;
                         } catch (IOException e) {
                             return null;
                         }
@@ -116,29 +157,13 @@ public class FestivalClient {
             throws IOException, UnsupportedAudioFileException, LineUnavailableException {
         var client = new FestivalClient(8989);
 
-        var msg = LocalTime.now().getHour() + ":" + LocalTime.now().getMinute();
+        LocalTime now = LocalTime.now();
+        var msg = now.getHour() + ":" + now.getMinute();
 
-        List<FestivalResponse> resp = client.send(List.of(
-                "(Parameter.set 'Wavefiletype 'riff)",
-                "(voice_cmu_us_slp_cg)",
-                "(tts_textall \"hello " + msg + "\" \"fundamental\")",
-                "(+ 1 29)",
-                "(* 38 11)",
-//                "(SayText \"three 3\")",
-                "(tts_textall \"hello\" \"fundamental\")",
-                "(/ 60 23)"));
-
-        byte[] wavData = resp.stream()
-                .filter(r -> r instanceof ResponseWave)
-                .map(r -> (ResponseWave) r)
-                .findFirst()
-                .map(r -> r.wavData())
-                .get();
-
-        System.out.println(wavData.length);
+        byte[] sayData = client.say(String.format("The time is %s", msg));
 
         Path saveTo = Paths.get("out.wav");
-        Files.write(saveTo, wavData,
+        Files.write(saveTo, sayData,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.WRITE);
