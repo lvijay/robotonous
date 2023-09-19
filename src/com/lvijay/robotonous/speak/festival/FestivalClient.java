@@ -4,23 +4,21 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.SynchronousQueue;
 
 import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineEvent.Type;
 import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 public class FestivalClient {
@@ -152,43 +150,44 @@ public class FestivalClient {
 
     /* test */
     public static void main(String[] args)
-            throws IOException, UnsupportedAudioFileException, LineUnavailableException {
+            throws IOException,
+                    InterruptedException,
+                    LineUnavailableException,
+                    UnsupportedAudioFileException
+    {
         var client = new FestivalClient(8989);
 
         LocalTime now = LocalTime.now();
         var msg = now.getHour() + ":" + now.getMinute();
-
         byte[] sayData = client.say(String.format("The time is %s.", msg));
+        playClip(new ByteArrayInputStream(sayData));
+    }
 
-        Path saveTo = Paths.get("out.wav");
-        Files.write(saveTo, sayData,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE);
+    static void playClip(ByteArrayInputStream sayData)
+            throws IOException,
+                    InterruptedException,
+                    LineUnavailableException,
+                    UnsupportedAudioFileException
+    {
+        var audioStream = AudioSystem.getAudioInputStream(sayData);
+        Clip audioClip = AudioSystem.getClip();
+        var wait = new SynchronousQueue<String>();
 
-        var audioStream = AudioSystem.getAudioInputStream(saveTo.toFile());
-        var audioFormat = audioStream.getFormat();
-        var info = new DataLine.Info(SourceDataLine.class, audioFormat);
-        var wavLine = (SourceDataLine) AudioSystem.getLine(info);
-
-        System.out.println("audioFormat = " + audioFormat);
-        System.out.println("datalineinfo = " + info);
-        System.out.println("wavline = " + wavLine);
-
-        wavLine.open(audioFormat);
-        wavLine.start();
-        { /* play audio */
-            int lineBufferSize = wavLine.getBufferSize();
-            for (int i = 0; i < sayData.length; ) {
-                int remaining = sayData.length - i;
-                int written = wavLine.write(sayData, i, Math.min(
-                        remaining, lineBufferSize));
-
-                i += written;
+        audioClip.addLineListener(evt -> {
+            System.out.println(evt);
+            if (evt.getType().equals(Type.STOP)) {
+                try {
+                    System.out.println("Stopping");
+                    wait.put("done");
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException(e);
+                }
             }
-
-            wavLine.drain();
-        }
-        wavLine.close();
+        });
+        audioClip.open(audioStream);
+        audioClip.start();
+        wait.take(); // TODO should we check return value?
+        audioClip.drain();
+        audioClip.close();
     }
 }

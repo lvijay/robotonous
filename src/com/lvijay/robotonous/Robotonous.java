@@ -3,6 +3,7 @@ package com.lvijay.robotonous;
 import java.awt.Robot;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,9 +13,13 @@ import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
 import java.util.stream.IntStream;
 
-import javax.sound.sampled.SourceDataLine;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.LineEvent.Type;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 
 import com.lvijay.robotonous.speak.festival.FestivalClient;
 
@@ -26,7 +31,6 @@ public class Robotonous {
     private final List<Action> pasteAction;
     private final ExecutorService threadpool;
     private final FestivalClient festivalClient;
-    private final SourceDataLine audioPlayer;
     private final Queue<Future<Void>> futures;
 
     public Robotonous(
@@ -35,8 +39,7 @@ public class Robotonous {
             Robot robot,
             Clipboard clipboard,
             ExecutorService threadpool,
-            FestivalClient festivalClient,
-            SourceDataLine audioPlayer) {
+            FestivalClient festivalClient) {
         this.keys = keys;
         this.sequencer = sequencer;
         this.robot = robot;
@@ -47,7 +50,6 @@ public class Robotonous {
                 + keys.keyAction());
         this.threadpool = threadpool;
         this.festivalClient = festivalClient;
-        this.audioPlayer = audioPlayer;
         this.futures = new LinkedList<>();
     }
 
@@ -159,12 +161,11 @@ public class Robotonous {
         execute(pasteAction);
     }
 
-    void speak(int[] arguments) {
-        byte[] result = new byte[arguments.length];
-        IntStream.range(0, arguments.length)
-                .forEach(i -> result[i] = (byte) arguments[i]);
-        byte[] soundData = result;
-        submit(soundData);
+    void speak(int[] wavdata) {
+        byte[] result = new byte[wavdata.length];
+        IntStream.range(0, wavdata.length)
+                .forEach(i -> result[i] = (byte) wavdata[i]);
+        submit(result);
     }
 
     void speakWait() throws InterruptedException, ExecutionException {
@@ -174,21 +175,40 @@ public class Robotonous {
     }
 
     private void submit(byte[] audio) {
-        var future = threadpool.<Void>submit(() -> play(audio, audioPlayer), null);
+        var future = threadpool.<Void>submit(() -> play(
+                new ByteArrayInputStream(audio)), null);
 
         futures.add(future);
     }
 
-    static void play(byte[] audioData, SourceDataLine line) {
-        int lineBufferSize = line.getBufferSize();
-        for (int i = 0; i < audioData.length; ) {
-            int remaining = audioData.length - i;
-            int written = line.write(audioData, i, Math.min(
-                    remaining, lineBufferSize));
+    static void play(ByteArrayInputStream audioData) {
+        /*
+         * In my experience Clip::drain doesn't block. We roll out our own
+         * blocker.
+         */
+        var playWaiter = new SynchronousQueue<Boolean>();
+        try {
+            var audioStream = AudioSystem.getAudioInputStream(audioData);
+            var player = AudioSystem.getClip();
 
-            i += written;
+            // start waiting before playing
+            player.addLineListener(evt -> {
+                if (evt.getType().equals(Type.STOP)) {
+                    playWaiter.add(Boolean.TRUE);
+                }
+            });
+
+            player.open(audioStream);
+            player.start();
+
+            playWaiter.take(); // explicit wait
+            player.drain();
+        } catch (
+                LineUnavailableException
+                | IOException
+                | InterruptedException
+                | UnsupportedAudioFileException e) {
+            throw new RuntimeException(e);
         }
-
-        line.drain();
     }
 }
