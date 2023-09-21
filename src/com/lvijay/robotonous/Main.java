@@ -4,9 +4,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.awt.Robot;
 import java.awt.Toolkit;
-import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.concurrent.Executors;
 
 import com.lvijay.robotonous.speak.festival.FestivalClient;
@@ -23,29 +23,31 @@ public class Main {
         int festivalPort = 8989;
         var festivalClient = new FestivalClient(festivalPort);
 
-        /* initialize and test sound */
+        var file = args[0];
 
-        byte[] say = festivalClient.say("if you heard this, sound works");
-        Robotonous.play(new ByteArrayInputStream(say));
+        var fileContents = Files.readString(Paths.get(file), UTF_8);
+        var contents = Contents.toContents(fileContents);
+        var executor = new Robotonous(
+                contents.body(),
+                contents.keys(),
+                robot,
+                clipboard,
+                threadpool,
+                festivalClient);
+        long startNanos = System.nanoTime();
+        executor.playAudio("voice check");
+
+        System.out.println("Computing robot actions...");
+        executor.init();
+        long endNanos = System.nanoTime();
+        long computeTimeS = Duration.ofNanos(endNanos - startNanos).toSeconds();
+        System.out.printf("...took %ds%n", computeTimeS);
 
         for (int i = 3; i > 0; i--) {
             System.out.println("starting in " + i + " seconds");
             robot.delay(1000);
         }
 
-        for (String file : args) {
-            var contents = Contents.toContents(Files.readString(Paths.get(file), UTF_8));
-            var sequencer = new KeyEventSequencerQwerty(contents.keys());
-            var executor = new Robotonous(
-                    contents.keys(),
-                    sequencer,
-                    robot,
-                    clipboard,
-                    threadpool,
-                    festivalClient);
-            var actions = executor.toActions(contents.body());
-
-            executor.execute(actions);
-        }
+        executor.execute();
     }
 }
