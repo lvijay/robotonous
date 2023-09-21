@@ -84,8 +84,8 @@ in the table below.
 | keyCommentLine | © | Ignores all content until the end of the line.
 | keyChord       | « | Initiates a chord.  Reuse the character to indicate termination of the chord.  `«§123«` types `SHIFT 1 2 3` |
 | keyCopy        | ¶ | Seeing text appear on the screen one key at a time gets boring fast.  For a (literally) graphic illustration of slow character by character viewing see my first [robotonous video](https://www.youtube.com/watch?v=esILqJRuvN4).  Robotonous's Copy/Paste feature allows rapid text insertion.  `hello, ¶world!¶` executes as `h e l l o, SPACE world!`.  See [Paste example](#paste-example) to see it in action. |
-| keyAsideInit   | γ | See [§Aside](#aside) below. |
-| keyAsideWait   | ω | See [§Aside](#aside) below. |
+| keySpeak       | γ | See [§Speak](#speak) below. |
+| keySpeakWait   | ω | See [§Speak](#speak) below. |
 | keyControl     | ¢ | Represents the [CTRL key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_CONTROL) |
 | keyAlt         | æ | Represents the [Alt or Option key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_ALT) |
 | keyShift       | § | Represents the [SHIFT key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_SHIFT) |
@@ -127,7 +127,7 @@ In the above, the
 key alone is customized.  The Unicode character PLACE OF INTEREST
 represents it.
 
-### Asides
+### Speaking
 
 TBD
 
