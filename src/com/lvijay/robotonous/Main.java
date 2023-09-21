@@ -21,7 +21,8 @@ public class Main {
             return thread;
         });
         int festivalPort = 8989;
-        var festivalClient = new FestivalClient(festivalPort);
+        var cacheDirectory = Paths.get(".cache");
+        var festivalClient = new FestivalClient(festivalPort, cacheDirectory);
 
         var file = args[0];
 
