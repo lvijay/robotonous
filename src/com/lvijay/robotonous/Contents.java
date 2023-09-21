@@ -7,8 +7,8 @@ public record Contents(String header, String body, SpecialKeys keys) {
     private static final Pattern KEY_COMMENT_LINE = Pattern.compile("(?m)^\\s*keyCommentLine\\s*=\\s*(.)\\s*$");
     private static final Pattern KEY_CHORD = Pattern.compile("(?m)^\\s*keyChord\\s*=\\s*(.)\\s*$");
     private static final Pattern KEY_COPY = Pattern.compile("(?m)^\\s*keyCopy\\s*=\\s*(.)\\s*$");
-    private static final Pattern KEY_ASIDE_INIT = Pattern.compile("(?m)^\\s*keyAsideInit\\s*=\\s*(.)\\s*$");
-    private static final Pattern KEY_ASIDE_WAIT = Pattern.compile("(?m)^\\s*keyAsideWait\\s*=\\s*(.)\\s*$");
+    private static final Pattern KEY_SPEAK = Pattern.compile("(?m)^\\s*keySpeak\\s*=\\s*(.)\\s*$");
+    private static final Pattern KEY_SPEAK_WAIT = Pattern.compile("(?m)^\\s*keySpeakWait\\s*=\\s*(.)\\s*$");
     private static final Pattern KEY_CONTROL = Pattern.compile("(?m)^\\s*keyControl\\s*=\\s*(.)\\s*$");
     private static final Pattern KEY_ALT = Pattern.compile("(?m)^\\s*keyAlt\\s*=\\s*(.)\\s*$");
     private static final Pattern KEY_SHIFT = Pattern.compile("(?m)^\\s*keyShift\\s*=\\s*(.)\\s*$");
@@ -40,8 +40,8 @@ public record Contents(String header, String body, SpecialKeys keys) {
         var keyCommentLine = get(KEY_COMMENT_LINE.matcher(header), "©");
         var keyAction = get(KEY_CHORD.matcher(header), "«");
         var keyCopy = get(KEY_COPY.matcher(header), "¶");
-        var keyAsideInit = get(KEY_ASIDE_INIT.matcher(header), "γ");
-        var keyAsideWait = get(KEY_ASIDE_WAIT.matcher(header), "ω");
+        var keySpeak = get(KEY_SPEAK.matcher(header), "γ");
+        var keySpeakWait = get(KEY_SPEAK_WAIT.matcher(header), "ω");
         var keyControl = get(KEY_CONTROL.matcher(header), "¢");
         var keyAlt = get(KEY_ALT.matcher(header), "æ");
         var keyShift = get(KEY_SHIFT.matcher(header), "§");
@@ -58,8 +58,8 @@ public record Contents(String header, String body, SpecialKeys keys) {
                 keyCommentLine.charAt(0),
                 keyAction.charAt(0),
                 keyCopy.charAt(0),
-                keyAsideInit.charAt(0),
-                keyAsideWait.charAt(0),
+                keySpeak.charAt(0),
+                keySpeakWait.charAt(0),
                 keyControl.charAt(0),
                 keyAlt.charAt(0),
                 keyShift.charAt(0),

@@ -6,11 +6,10 @@ import java.awt.Robot;
 import java.awt.Toolkit;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Map;
+import java.time.Duration;
 import java.util.concurrent.Executors;
 
-import com.lvijay.robotonous.asides.Alongside;
-import com.lvijay.robotonous.asides.TcpAlongside;
+import com.lvijay.robotonous.speak.festival.FestivalClient;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -21,28 +20,34 @@ public class Main {
             thread.setDaemon(true);
             return thread;
         });
-        var tcpSpeak = new TcpAlongside(8989); // assumes festival running on 8989
-        Map<String, Alongside> sides = Map.of(
-                "speak", arg -> tcpSpeak.execute(String.format("(SayText \"%s\")", arg)));
+        int festivalPort = 8989;
+        var festivalClient = new FestivalClient(festivalPort);
+
+        var file = args[0];
+
+        var fileContents = Files.readString(Paths.get(file), UTF_8);
+        var contents = Contents.toContents(fileContents);
+        var executor = new Robotonous(
+                contents.body(),
+                contents.keys(),
+                robot,
+                clipboard,
+                threadpool,
+                festivalClient);
+        long startNanos = System.nanoTime();
+        executor.playAudio("voice check");
+
+        System.out.println("Computing robot actions...");
+        executor.init();
+        long endNanos = System.nanoTime();
+        long computeTimeS = Duration.ofNanos(endNanos - startNanos).toSeconds();
+        System.out.printf("...took %ds%n", computeTimeS);
 
         for (int i = 3; i > 0; i--) {
             System.out.println("starting in " + i + " seconds");
             robot.delay(1000);
         }
 
-        for (String file : args) {
-            var contents = Contents.toContents(Files.readString(Paths.get(file), UTF_8));
-            var sequencer = new KeyEventSequencerQwerty(contents.keys());
-            var executor = new Robotonous(
-                    contents.keys(),
-                    sequencer,
-                    robot,
-                    clipboard,
-                    threadpool,
-                    sides);
-            var actions = executor.toActions(contents.body());
-
-            executor.execute(actions);
-        }
+        executor.execute();
     }
 }

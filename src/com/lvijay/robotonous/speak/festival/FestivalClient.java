@@ -4,44 +4,81 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.SynchronousQueue;
 
 import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineEvent.Type;
 import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
-
-import com.lvijay.robotonous.speak.Audio;
 
 public class FestivalClient {
     public static final String END = "ft_StUfF_key";
 
     private final int port;
+    private final String voice;
+    private final String audioFormat;
 
-    public FestivalClient(int port) {
+    private FestivalClient(int port, String voice, String audioFormat) {
         this.port = port;
+        this.voice = '(' + voice + ')';
+        this.audioFormat = audioFormat;
     }
 
-    public List<FestivalResponse> send(List<String> sexps) throws IOException {
+    public FestivalClient(int port, String voice) {
+        this(port, voice, "(Parameter.set 'Wavefiletype 'riff)");
+    }
+
+    public FestivalClient(int port) {
+        this(port, "voice_cmu_us_aew_cg");
+    }
+
+    public byte[] say(String content) throws IOException {
+        content = content.replace("\"", "\\\""); // poor escaping but it'll do for now
+
+        var setFormat = audioFormat;
+        var setVoice = voice;
+        var getContent = String.format("(tts_textall %c%s%c %cfundamental%c)",
+                '"', content, '"', '"', '"');
+        var emptyComputation = "(= nil nil)";
+
+        List<FestivalResponse> resp = send(List.of(
+                setFormat,
+                setVoice,
+                getContent,
+                emptyComputation
+                ));
+
+        return resp.stream()
+                .filter(r -> r instanceof ResponseWave)
+                .map(r -> (ResponseWave) r)
+                .findFirst()
+                .map(v -> v.wavData())
+                .get();
+    }
+
+    private List<FestivalResponse> send(List<String> sexps) throws IOException {
         try (var socket = new Socket("localhost", port);
                 var in = socket.getInputStream();
                 var out = socket.getOutputStream()) {
             return sexps.stream()
                     .map(lsp -> {
                         try {
-                            return sendInternal(lsp, in, out);
+                            var response = sendInternal(lsp, in, out);
+                            if (response instanceof ResponseOk) {
+                                // ignore OK, go again
+                                return sendInternal(lsp, in, out);
+                            }
+                            return response;
                         } catch (IOException e) {
                             return null;
                         }
@@ -113,50 +150,44 @@ public class FestivalClient {
 
     /* test */
     public static void main(String[] args)
-            throws IOException, UnsupportedAudioFileException, LineUnavailableException {
+            throws IOException,
+                    InterruptedException,
+                    LineUnavailableException,
+                    UnsupportedAudioFileException
+    {
         var client = new FestivalClient(8989);
 
-        var msg = LocalTime.now().getHour() + ":" + LocalTime.now().getMinute();
+        LocalTime now = LocalTime.now();
+        var msg = now.getHour() + ":" + now.getMinute();
+        byte[] sayData = client.say(String.format("The time is %s.", msg));
+        playClip(new ByteArrayInputStream(sayData));
+    }
 
-        List<FestivalResponse> resp = client.send(List.of(
-                "(Parameter.set 'Wavefiletype 'riff)",
-                "(voice_cmu_us_slp_cg)",
-                "(tts_textall \"hello " + msg + "\" \"fundamental\")",
-                "(+ 1 29)",
-                "(* 38 11)",
-//                "(SayText \"three 3\")",
-                "(tts_textall \"hello\" \"fundamental\")",
-                "(/ 60 23)"));
+    static void playClip(ByteArrayInputStream sayData)
+            throws IOException,
+                    InterruptedException,
+                    LineUnavailableException,
+                    UnsupportedAudioFileException
+    {
+        var audioStream = AudioSystem.getAudioInputStream(sayData);
+        Clip audioClip = AudioSystem.getClip();
+        var wait = new SynchronousQueue<String>();
 
-        byte[] wavData = resp.stream()
-                .filter(r -> r instanceof ResponseWave)
-                .map(r -> (ResponseWave) r)
-                .findFirst()
-                .map(r -> r.wavData())
-                .get();
-
-        System.out.println(wavData.length);
-
-        Path saveTo = Paths.get("out.wav");
-        Files.write(saveTo, wavData,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE);
-
-        Audio audio = Audio.createAudio(saveTo);
-
-        var audioStream = AudioSystem.getAudioInputStream(saveTo.toFile());
-        var audioFormat = audioStream.getFormat();
-        var info = new DataLine.Info(SourceDataLine.class, audioFormat);
-        var wavLine = (SourceDataLine) AudioSystem.getLine(info);
-
-        System.out.println("audioFormat = " + audioFormat);
-        System.out.println("datalineinfo = " + info);
-        System.out.println("wavline = " + wavLine);
-
-        wavLine.open(audioFormat);
-        wavLine.start();
-        audio.play(wavLine);
-        wavLine.close();
+        audioClip.addLineListener(evt -> {
+            System.out.println(evt);
+            if (evt.getType().equals(Type.STOP)) {
+                try {
+                    System.out.println("Stopping");
+                    wait.put("done");
+                } catch (InterruptedException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
+        audioClip.open(audioStream);
+        audioClip.start();
+        wait.take(); // TODO should we check return value?
+        audioClip.drain();
+        audioClip.close();
     }
 }
