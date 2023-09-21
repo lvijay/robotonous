@@ -4,48 +4,59 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.net.Socket;
-import java.time.LocalTime;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.SynchronousQueue;
-
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.LineEvent.Type;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.UnsupportedAudioFileException;
 
 public class FestivalClient {
     public static final String END = "ft_StUfF_key";
 
     private final int port;
+    private final Path cacheDirectory;
+    private final String algorithm = "SHA-1";
     private final String voice;
-    private final String audioFormat;
+    private final String setFestivalAudioFormat;
 
-    private FestivalClient(int port, String voice, String audioFormat) {
+    private FestivalClient(
+            int port,
+            Path cacheDirectory,
+            String voice,
+            String setFestivalAudioFormat) {
         this.port = port;
+        this.cacheDirectory = cacheDirectory;
         this.voice = '(' + voice + ')';
-        this.audioFormat = audioFormat;
+        this.setFestivalAudioFormat = setFestivalAudioFormat;
     }
 
-    public FestivalClient(int port, String voice) {
-        this(port, voice, "(Parameter.set 'Wavefiletype 'riff)");
+    public FestivalClient(int port, Path cacheDirectory, String voice) {
+        this(port, cacheDirectory, voice, "(Parameter.set 'Wavefiletype 'riff)");
     }
 
-    public FestivalClient(int port) {
-        this(port, "voice_cmu_us_aew_cg");
+    public FestivalClient(int port, Path cacheDirectory) {
+        this(port, cacheDirectory, "voice_cmu_us_aew_cg");
     }
 
-    public byte[] say(String content) throws IOException {
+    public byte[] toAudioData(String content) throws IOException {
         content = content.replace("\"", "\\\""); // poor escaping but it'll do for now
 
-        var setFormat = audioFormat;
+        var hash = hash(content);
+        var fileData = getFileData(hash);
+
+        if (fileData != null) {
+            return fileData;
+        }
+
+        var setFormat = setFestivalAudioFormat;
         var setVoice = voice;
         var getContent = String.format("(tts_textall %c%s%c %cfundamental%c)",
                 '"', content, '"', '"', '"');
@@ -58,12 +69,16 @@ public class FestivalClient {
                 emptyComputation
                 ));
 
-        return resp.stream()
+        var waveData = resp.stream()
                 .filter(r -> r instanceof ResponseWave)
                 .map(r -> (ResponseWave) r)
                 .findFirst()
                 .map(v -> v.wavData())
                 .get();
+
+        saveFileData(hash, waveData);
+
+        return waveData;
     }
 
     private List<FestivalResponse> send(List<String> sexps) throws IOException {
@@ -148,46 +163,42 @@ public class FestivalClient {
         throw new IllegalStateException();
     }
 
-    /* test */
-    public static void main(String[] args)
-            throws IOException,
-                    InterruptedException,
-                    LineUnavailableException,
-                    UnsupportedAudioFileException
-    {
-        var client = new FestivalClient(8989);
-
-        LocalTime now = LocalTime.now();
-        var msg = now.getHour() + ":" + now.getMinute();
-        byte[] sayData = client.say(String.format("The time is %s.", msg));
-        playClip(new ByteArrayInputStream(sayData));
+    private String hash(String contents) {
+        try {
+            var md = MessageDigest.getInstance(algorithm);
+            var hash = md.digest(contents.getBytes(UTF_8));
+            var hashed = new BigInteger(+1, hash);
+            return hashed.toString(16);
+        } catch (NoSuchAlgorithmException e) {
+            // unreachable code, see
+            // https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/security/MessageDigest.html
+            throw new IllegalStateException(e);
+        }
     }
 
-    static void playClip(ByteArrayInputStream sayData)
-            throws IOException,
-                    InterruptedException,
-                    LineUnavailableException,
-                    UnsupportedAudioFileException
-    {
-        var audioStream = AudioSystem.getAudioInputStream(sayData);
-        Clip audioClip = AudioSystem.getClip();
-        var wait = new SynchronousQueue<String>();
+    private byte[] getFileData(String hash) throws IOException {
+        try {
+            var filename = hash + ".wav";
+            Path filepath = cacheDirectory.resolve(filename);
 
-        audioClip.addLineListener(evt -> {
-            System.out.println(evt);
-            if (evt.getType().equals(Type.STOP)) {
-                try {
-                    System.out.println("Stopping");
-                    wait.put("done");
-                } catch (InterruptedException e) {
-                    throw new IllegalStateException(e);
-                }
+            if (filepath.toFile().exists()) {
+                return Files.readAllBytes(filepath);
             }
-        });
-        audioClip.open(audioStream);
-        audioClip.start();
-        wait.take(); // TODO should we check return value?
-        audioClip.drain();
-        audioClip.close();
+
+            return null;
+        } catch (NoSuchFileException e) {
+            return null;
+        }
+    }
+
+    private void saveFileData(String hash, byte[] waveData) throws IOException {
+        try {
+            var filename = hash + ".wav";
+            var filepath = cacheDirectory.resolve(filename);
+
+            Files.write(filepath, waveData);
+        } catch (NoSuchFileException e) {
+            return;
+        }
     }
 }

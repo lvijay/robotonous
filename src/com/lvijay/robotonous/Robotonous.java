@@ -125,7 +125,7 @@ public class Robotonous {
                     int start = ++i;
                     int end = s.indexOf(keys.keySpeak(), start);
                     String speakContent = s.substring(start, end);
-                    byte[] speakData = festivalClient.say(speakContent);
+                    byte[] speakData = festivalClient.toAudioData(speakContent);
 
                     actions.add(new ActionSpeak(speakData));
                     i = end;
@@ -383,7 +383,7 @@ public class Robotonous {
 
     void playAudio(String message)
             throws LineUnavailableException, IOException, UnsupportedAudioFileException {
-        var audioData = festivalClient.say(message);
+        var audioData = festivalClient.toAudioData(message);
         var actionSpeak = new ActionSpeak(audioData);
         var actionWait = new ActionSpeakWait();
 
