@@ -216,6 +216,7 @@ public class Robotonous {
             case '\''-> new ActionTypeKeys(VK_QUOTE);
             case '"' -> new ActionTypeKeys(VK_SHIFT, VK_QUOTE);
             case ',' -> new ActionTypeKeys(VK_COMMA);
+            case '<' -> new ActionTypeKeys(VK_SHIFT, VK_COMMA);
             case ';' -> new ActionTypeKeys(VK_SEMICOLON);
             case ':' -> new ActionTypeKeys(VK_SHIFT, VK_SEMICOLON);
             case '=' -> new ActionTypeKeys(VK_EQUALS);
