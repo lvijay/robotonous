@@ -9,6 +9,8 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 
+import com.lvijay.robotonous.speak.AudioClient;
+import com.lvijay.robotonous.speak.MockAudioClient;
 import com.lvijay.robotonous.speak.festival.FestivalClient;
 
 public class Main {
@@ -20,11 +22,29 @@ public class Main {
             thread.setDaemon(true);
             return thread;
         });
-        int festivalPort = 8989;
-        var cacheDirectory = Paths.get(".cache");
-        var festivalClient = new FestivalClient(festivalPort, cacheDirectory);
 
-        var file = args[0];
+        AudioClient audioClient;
+        int idx = 0;
+        if (args[0].equals("-audio")) {
+            var audioChoice = args[1];
+            idx = 2;
+
+            audioClient = switch (audioChoice) {
+                case "festival" -> {
+                    int festivalPort = 8989;
+                    var cacheDirectory = Paths.get(".cache");
+                    yield new FestivalClient(festivalPort, cacheDirectory);
+                }
+                case "mock" -> new MockAudioClient();
+                default -> throw new IllegalArgumentException();
+            };
+        } else {
+            int festivalPort = 8989;
+            var cacheDirectory = Paths.get(".cache");
+            audioClient = new FestivalClient(festivalPort, cacheDirectory);
+        }
+
+        var file = args[idx];
 
         var fileContents = Files.readString(Paths.get(file), UTF_8);
         var contents = Contents.toContents(fileContents);
@@ -34,9 +54,8 @@ public class Main {
                 robot,
                 clipboard,
                 threadpool,
-                festivalClient);
+                audioClient);
         long startNanos = System.nanoTime();
-        executor.playAudio("voice check");
 
         System.out.println("Computing robot actions...");
         executor.init();
