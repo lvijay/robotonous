@@ -29,7 +29,6 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -337,11 +336,9 @@ public class Robotonous {
             this.waiter = new SynchronousQueue<>();
 
             arg.addLineListener(evt -> {
-                System.out.printf("%s %s%n", LocalTime.now(), evt.getType());
                 if (evt.getType().equals(Type.STOP)) {
                     try {
                         waiter.put(Boolean.TRUE);
-                        System.out.printf("%s STOP WAIT DONE%n", LocalTime.now());
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
