@@ -27,7 +27,6 @@ import java.awt.Robot;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,17 +36,11 @@ import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.SynchronousQueue;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.LineEvent.Type;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.UnsupportedAudioFileException;
-
-import com.lvijay.robotonous.speak.festival.FestivalClient;
+import com.lvijay.robotonous.speak.AudioClient;
+import com.lvijay.robotonous.speak.AudioPlayer;
 
 public class Robotonous {
     private final String commands;
@@ -56,7 +49,7 @@ public class Robotonous {
     private final Clipboard clipboard;
     private final List<ActionTypeKeys> pasteAction;
     private final ExecutorService threadpool;
-    private final FestivalClient festivalClient;
+    private final AudioClient audioClient;
     private final Queue<Future<Void>> futures;
     private final List<Action<?>> actions;
 
@@ -66,7 +59,7 @@ public class Robotonous {
             Robot robot,
             Clipboard clipboard,
             ExecutorService threadpool,
-            FestivalClient festivalClient) {
+            AudioClient audioClient) {
         this.commands = commands;
         this.keys = keys;
         this.robot = robot;
@@ -77,7 +70,7 @@ public class Robotonous {
                         .map(v -> (ActionTypeKeys) v)
                         .toList();
         this.threadpool = threadpool;
-        this.festivalClient = festivalClient;
+        this.audioClient = audioClient;
         this.futures = new LinkedList<>();
         this.actions = new ArrayList<>();
     }
@@ -124,9 +117,9 @@ public class Robotonous {
                     int start = ++i;
                     int end = s.indexOf(keys.keySpeak(), start);
                     String speakContent = s.substring(start, end);
-                    byte[] speakData = festivalClient.toAudioData(speakContent);
+                    var player = audioClient.toAudioPlayer(speakContent);
 
-                    actions.add(new ActionSpeak(speakData));
+                    actions.add(new ActionSpeak(player));
                     i = end;
                 } else if (c == keys.keySpeakWait()) {
                     long initCounts = actions.stream()
@@ -159,9 +152,7 @@ public class Robotonous {
             } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
                 System.err.printf("Exception at index %d c=%c%n", i, c);
                 throw e;
-            } catch (LineUnavailableException
-                    | IOException
-                    | UnsupportedAudioFileException e) {
+            } catch (IOException e) {
                 System.err.printf("Exception %s at index %d c=%c%n", e, i, c);
                 throw new IllegalStateException(e);
             }
@@ -312,56 +303,15 @@ public class Robotonous {
         }
     }
 
-    private final class ActionSpeak extends Action<Clip> {
-        private static Clip toClip(byte[] data)
-                throws LineUnavailableException, IOException, UnsupportedAudioFileException {
-            var audioData = new ByteArrayInputStream(data);
-            var audioStream = AudioSystem.getAudioInputStream(audioData);
-            Clip clip = AudioSystem.getClip();
-
-            clip.open(audioStream);
-
-            return clip;
-        }
-
-        /**
-         * In my experience {@link Clip#drain()} does not block. We use
-         * {@link SynchronousQueue} to explicitly block the player.
-         */
-        private final SynchronousQueue<Boolean> waiter;
-
-        private ActionSpeak(byte[] soundData)
-                throws LineUnavailableException, IOException, UnsupportedAudioFileException {
-            super(toClip(soundData));
-            this.waiter = new SynchronousQueue<>();
-
-            arg.addLineListener(evt -> {
-                if (evt.getType().equals(Type.STOP)) {
-                    try {
-                        waiter.put(Boolean.TRUE);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            });
+    private final class ActionSpeak extends Action<AudioPlayer> {
+        private ActionSpeak(AudioPlayer player) {
+            super(player);
         }
 
         @Override
         public void perform() {
-            var future = threadpool.<Void>submit(this::playAudio, null);
+            var future = threadpool.<Void>submit(this.arg::play, null);
             futures.add(future);
-        }
-
-        private void playAudio() {
-            try {
-                var player = arg;
-
-                player.start();
-                waiter.take().booleanValue();
-                player.drain();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
         }
     }
 
@@ -377,15 +327,5 @@ public class Robotonous {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    void playAudio(String message)
-            throws LineUnavailableException, IOException, UnsupportedAudioFileException {
-        var audioData = festivalClient.toAudioData(message);
-        var actionSpeak = new ActionSpeak(audioData);
-        var actionWait = new ActionSpeakWait();
-
-        actionSpeak.perform();
-        actionWait.perform();
     }
 }

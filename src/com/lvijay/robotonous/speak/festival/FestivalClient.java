@@ -4,6 +4,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,8 +18,18 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.SynchronousQueue;
 
-public class FestivalClient {
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineEvent.Type;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
+
+import com.lvijay.robotonous.speak.AudioClient;
+import com.lvijay.robotonous.speak.AudioPlayer;
+
+public class FestivalClient implements AudioClient {
     public static final String END = "ft_StUfF_key";
 
     private final int port;
@@ -46,7 +57,51 @@ public class FestivalClient {
         this(port, cacheDirectory, "voice_cmu_us_aew_cg");
     }
 
-    public byte[] toAudioData(String content) throws IOException {
+    @Override
+    public AudioPlayer toAudioPlayer(String content)
+            throws IOException {
+        try {
+            byte[] data = toByteData(content);
+            var audioData = new ByteArrayInputStream(data);
+            var audioStream = AudioSystem.getAudioInputStream(audioData);
+            Clip clip = AudioSystem.getClip();
+
+            clip.open(audioStream);
+
+            /**
+             * In my experience {@link Clip#drain()} does not block. We use
+             * {@link SynchronousQueue} to explicitly block the player.
+             */
+            var waiter = new SynchronousQueue<Boolean>();
+
+            clip.addLineListener(evt -> {
+                if (evt.getType().equals(Type.STOP)) {
+                    try {
+                        waiter.put(Boolean.TRUE);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+
+            AudioPlayer player = () -> {
+                try {
+                    clip.start();
+                    waiter.take().booleanValue();
+                    clip.drain();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+
+                    throw new IllegalStateException(e);
+                }
+            };
+            return player;
+        } catch (UnsupportedAudioFileException | LineUnavailableException e) {
+            throw new IOException(e);
+        }
+    }
+
+    byte[] toByteData(String content) throws IOException {
         content = content.replace("\"", "\\\""); // poor escaping but it'll do for now
 
         var hash = hash(content);
