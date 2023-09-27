@@ -151,6 +151,9 @@ public class FestivalClient implements AudioClient {
                             return response;
                         } catch (IOException e) {
                             return null;
+                        } catch (IllegalStateException e) {
+                            System.err.printf("Error processing ```%s'''%n", lsp);
+                            throw e;
                         }
                     })
                     .toList();
@@ -183,6 +186,11 @@ public class FestivalClient implements AudioClient {
         }
 
         if (c3 != '\n') {
+            if (String.format("%c%c%c", c1, c2, c3).equals("#<U")) {
+                // hack
+                readUntil(in, ">".getBytes(US_ASCII));
+                return "OK";
+            }
             throw new IllegalStateException("Expected \\n, found " + ((char) c3));
         }
 
