@@ -86,6 +86,8 @@ public class Robotonous {
 
     private List<Action<?>> toActions(String s) {
         List<Action<?>> actions = new ArrayList<>(s.length());
+        int speakCount = 0;
+        int waitCount = 0;
 
         for (int i = 0; i < s.length(); ++i) {
             char c = s.charAt(i);
@@ -108,28 +110,29 @@ public class Robotonous {
                     int start = ++i;
                     int end = s.indexOf(keys.keyCopy(), start);
                     String pasteContents = s.substring(start, end);
+
                     actions.add(new ActionPaste(pasteContents));
                     i = end;
                 } else if (c == keys.keyCommentLine()) { // ignore until end of line
                     int end = s.indexOf('\n', i);
                     i = end;
                 } else if (c == keys.keySpeak()) {
+                    ++speakCount;
                     int start = ++i;
                     int end = s.indexOf(keys.keySpeak(), start);
                     String speakContent = s.substring(start, end);
                     var player = audioClient.toAudioPlayer(speakContent);
 
+                    if (speakCount - waitCount > 1) {
+                        throw new IllegalArgumentException("Not enough waits.");
+                    }
+
                     actions.add(new ActionSpeak(player));
                     i = end;
                 } else if (c == keys.keySpeakWait()) {
-                    long initCounts = actions.stream()
-                            .filter(a -> a instanceof ActionSpeak)
-                            .count();
-                    long waitCounts = actions.stream()
-                            .filter(a -> a instanceof ActionSpeakWait)
-                            .count();
+                    ++waitCount;
 
-                    if (initCounts <= waitCounts) {
+                    if (speakCount < waitCount) {
                         throw new IllegalArgumentException("More waits than inits");
                     }
 
