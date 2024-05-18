@@ -4,6 +4,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.awt.Robot;
 import java.awt.Toolkit;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -25,9 +26,9 @@ public class Main {
 
         AudioClient audioClient;
         int idx = 0;
-        if (args[0].equals("-audio")) {
-            var audioChoice = args[1];
-            idx = 2;
+        if (args[idx].equals("-audio")) {
+            var audioChoice = args[idx+1];
+            idx += 2;
 
             audioClient = switch (audioChoice) {
                 case "festival" -> {
@@ -44,6 +45,18 @@ public class Main {
             audioClient = new FestivalClient(festivalPort, cacheDirectory);
         }
 
+        PrintStream printTo;
+        if (args[idx].equals("-printTo")) {
+            var filename = args[idx+1];
+            idx += 2;
+
+            @SuppressWarnings("resource")
+            var printo = new PrintStream(filename, UTF_8);
+            printTo = printo;
+        } else {
+            printTo = System.out;
+        }
+
         var file = args[idx];
 
         var fileContents = Files.readString(Paths.get(file), UTF_8);
@@ -54,7 +67,8 @@ public class Main {
                 robot,
                 clipboard,
                 threadpool,
-                audioClient);
+                audioClient,
+                printTo);
         long startNanos = System.nanoTime();
 
         System.out.println("Computing robot actions...");
