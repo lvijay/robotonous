@@ -23,11 +23,15 @@ import static java.awt.event.KeyEvent.VK_SLASH;
 import static java.awt.event.KeyEvent.VK_SPACE;
 import static java.awt.event.KeyEvent.VK_TAB;
 
+import java.awt.Dimension;
 import java.awt.Robot;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -39,6 +43,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.lvijay.robotonous.print.Formatter;
 import com.lvijay.robotonous.speak.AudioClient;
 import com.lvijay.robotonous.speak.AudioPlayer;
 
@@ -52,6 +57,7 @@ public class Robotonous {
     private final AudioClient audioClient;
     private final Queue<Future<Void>> futures;
     private final List<Action<?>> actions;
+    private final PrintStream printTo;
 
     public Robotonous(
             String commands,
@@ -59,13 +65,16 @@ public class Robotonous {
             Robot robot,
             Clipboard clipboard,
             ExecutorService threadpool,
-            AudioClient audioClient) {
+            AudioClient audioClient,
+            PrintStream printTo) {
         this.commands = commands;
         this.keys = keys;
         this.robot = robot;
         this.clipboard = clipboard;
         this.pasteAction = toActions(
-                keys.keyAction() + keys.chordPaste() + keys.keyAction())
+                keys.keyAction().open()
+                + keys.chordPaste()
+                + keys.keyAction().close())
                         .stream()
                         .map(v -> (ActionTypeKeys) v)
                         .toList();
@@ -73,6 +82,7 @@ public class Robotonous {
         this.audioClient = audioClient;
         this.futures = new LinkedList<>();
         this.actions = new ArrayList<>();
+        this.printTo = printTo;
     }
 
     public void init() {
@@ -88,15 +98,18 @@ public class Robotonous {
         List<Action<?>> actions = new ArrayList<>(s.length());
         int speakCount = 0;
         int waitCount = 0;
+        boolean mouseLeftActive = false;
+        boolean mouseRightActive = false;
+        int lastDelay = 0;
 
         for (int i = 0; i < s.length(); ++i) {
             char c = s.charAt(i);
 
             try {
-                if (c == keys.keyAction()) {
+                if (c == keys.keyAction().open()) {
                     ++i;
                     int start = i;
-                    int end = s.indexOf(keys.keyAction(), start);
+                    int end = s.indexOf(keys.keyAction().close(), start);
 
                     int[] chordKeys = s.substring(start, end)
                             .chars()
@@ -106,9 +119,9 @@ public class Robotonous {
                     actions.add(new ActionTypeKeys(chordKeys));
 
                     i = end;
-                } else if (c == keys.keyCopy()) { // add contents to system clipboard
+                } else if (c == keys.keyCopy().open()) { // add contents to system clipboard
                     int start = ++i;
-                    int end = s.indexOf(keys.keyCopy(), start);
+                    int end = s.indexOf(keys.keyCopy().close(), start);
                     String pasteContents = s.substring(start, end);
 
                     actions.add(new ActionPaste(pasteContents));
@@ -116,10 +129,10 @@ public class Robotonous {
                 } else if (c == keys.keyCommentLine()) { // ignore until end of line
                     int end = s.indexOf('\n', i);
                     i = end;
-                } else if (c == keys.keySpeak()) {
+                } else if (c == keys.keySpeak().open()) {
                     ++speakCount;
                     int start = ++i;
-                    int end = s.indexOf(keys.keySpeak(), start);
+                    int end = s.indexOf(keys.keySpeak().close(), start);
                     String speakContent = s.substring(start, end);
                     var player = audioClient.toAudioPlayer(speakContent);
 
@@ -129,6 +142,18 @@ public class Robotonous {
 
                     actions.add(new ActionSpeak(player));
                     i = end;
+                } else if (c == keys.keyPrint().open()) {
+                    int start = ++i;
+                    int end = s.indexOf(keys.keyPrint().close(), start);
+                    var printContent = s.substring(start, end);
+                    var formatter = Formatter.fromString(printContent);
+                    var format = formatter.format();
+                    var delay = formatter.delay() == -1 ? lastDelay : formatter.delay();
+                    var content = formatter.contents();
+
+                    actions.add(new ActionBashFormatPrint(format, delay, content));
+                    lastDelay = delay;
+                    i = end;
                 } else if (c == keys.keySpeakWait()) {
                     ++waitCount;
 
@@ -137,6 +162,43 @@ public class Robotonous {
                     }
 
                     actions.add(new ActionSpeakWait());
+                } else if (c == keys.mouseLeft().open()) {
+                    if (mouseLeftActive) {
+                        throw new IllegalArgumentException("Mouse Left already pressed");
+                    }
+                    mouseLeftActive = true;
+                    actions.add(new ActionMouseAction(MouseEvent.BUTTON1, mouseLeftActive));
+                } else if (c == keys.mouseLeft().close()) {
+                    if (!mouseLeftActive) {
+                        throw new IllegalArgumentException("Mouse Left not pressed");
+                    }
+                    mouseLeftActive = false;
+                    actions.add(new ActionMouseAction(MouseEvent.BUTTON1, mouseLeftActive));
+                } else if (c == keys.mouseRight().open()) {
+                    if (mouseRightActive) {
+                        throw new IllegalArgumentException("Mouse Right already pressed");
+                    }
+                    mouseRightActive = true;
+                    actions.add(new ActionMouseAction(MouseEvent.BUTTON3, mouseRightActive));
+                } else if (c == keys.mouseRight().close()) {
+                    if (!mouseRightActive) {
+                        throw new IllegalArgumentException("Mouse Right not pressed");
+                    }
+                    mouseRightActive = false;
+                    actions.add(new ActionMouseAction(MouseEvent.BUTTON3, mouseRightActive));
+                } else if (c == keys.mouseMove().open()) {
+                    int start = ++i;
+                    int end = s.indexOf(keys.mouseMove().close(), start);
+                    String dimensions = s.substring(start, end);
+                    var xy = dimensions.split(",");
+                    int x = Integer.parseInt(xy[0]);
+                    int y = Integer.parseInt(xy[1]);
+                    if (xy.length != 2) {
+                        throw new IllegalArgumentException("unexpected dimensions " + dimensions);
+                    }
+
+                    actions.add(new ActionMouseMove(x, y));
+                    i = end;
                 } else if (c >= '①' && c <= '⑳') { // 9312...9331
                     int diff = c - '①';
                     int val = diff + 1;
@@ -159,6 +221,10 @@ public class Robotonous {
                 System.err.printf("Exception %s at index %d c=%c%n", e, i, c);
                 throw new IllegalStateException(e);
             }
+        }
+
+        if (mouseLeftActive || mouseRightActive) {
+            throw new IllegalStateException("Mouse clicked but not released");
         }
 
         return actions;
@@ -233,15 +299,24 @@ public class Robotonous {
         };
     }
 
+    // sealed is really overkill here
     private abstract sealed class Action<T>
-            permits ActionDelay, ActionTypeKeys, ActionPaste, ActionSpeak, ActionSpeakWait {
+            permits
+                    ActionDelay,
+                    ActionTypeKeys,
+                    ActionPaste,
+                    ActionSpeak,
+                    ActionSpeakWait,
+                    ActionBashFormatPrint,
+                    ActionMouseAction,
+                    ActionMouseMove
+    {
         public final T arg;
         public Action(T arg) { this.arg = arg; }
         public abstract void perform();
         @Override
         public String toString() {
-            return String.format("<%s>",
-                    getClass().getSimpleName());
+            return String.format("<%s %s>", getClass().getSimpleName(), arg);
         }
     }
 
@@ -329,6 +404,65 @@ public class Robotonous {
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    private final class ActionBashFormatPrint extends Action<Void> {
+        private final String format;
+        private final int delay;
+        private final String contents;
+
+        private ActionBashFormatPrint(String format, int delay, String contents) {
+            super((Void) null);
+
+            this.format = format;
+            this.delay = delay;
+            this.contents = contents;
+        }
+        private String prefix() {
+            return "\033[" + format + "m";
+        }
+
+        private String reset() {
+            return "\033[0m";
+        }
+
+        @Override
+        public void perform() {
+            printTo.print(prefix());
+            for (char c : contents.toCharArray()) {
+                printTo.print(c);
+                robot.delay(delay);
+            }
+            printTo.print(reset());
+        }
+    }
+
+    private final class ActionMouseAction extends Action<Integer> {
+        private final Runnable action;
+
+        private ActionMouseAction(int value, boolean press) {
+            super(InputEvent.getMaskForButton(value));
+
+            this.action = press ?
+                () -> robot.mousePress(arg.intValue())
+                : () -> robot.mouseRelease(arg.intValue());
+        }
+
+        @Override
+        public void perform() {
+            action.run();
+        }
+    }
+
+    private final class ActionMouseMove extends Action<Dimension> {
+        public ActionMouseMove(int x, int y) {
+            super(new Dimension(x, y));
+        }
+
+        @Override
+        public void perform() {
+            robot.mouseMove(arg.width, arg.height);
         }
     }
 }
