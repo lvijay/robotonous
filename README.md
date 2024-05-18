@@ -83,7 +83,7 @@ in the table below.
 | :---           | :---: | :--- |
 | keyCommentLine | © | Ignores all content until the end of the line.
 | keyChord       | « | Initiates a chord.  Reuse the character to indicate termination of the chord.  `«§123«` types `SHIFT 1 2 3` |
-| keyCopy        | ¶ | Seeing text appear on the screen one key at a time gets boring fast.  For a (literally) graphic illustration of slow character by character viewing see my first [robotonous video](https://www.youtube.com/watch?v=esILqJRuvN4).  Robotonous's Copy/Paste feature allows rapid text insertion.  `hello, ¶world!¶` executes as `h e l l o, SPACE world!`.  See [Paste example](#paste-example) to see it in action. |
+| keyCopy        | ⊂⊃ | Seeing text appear on the screen one key at a time gets boring fast.  For a (literally) graphic illustration of slow character by character viewing see my first [robotonous video](https://www.youtube.com/watch?v=esILqJRuvN4).  Robotonous's Copy/Paste feature allows rapid text insertion.  `hello, ⊂world!⊃` executes as `h e l l o, SPACE world!`.  See [Paste example](#paste-example) to see it in action. |
 | keySpeak       | γ | See [§Speak](#speak) below. |
 | keySpeakWait   | ω | See [§Speak](#speak) below. |
 | keyControl     | ¢ | Represents the [CTRL key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_CONTROL) |
@@ -105,9 +105,9 @@ An example of the paste action.
 
 ![paste action](./docs/examplePaste.gif)
 
-The string encased between two ¶ (`PILCROW SIGN` characters) is
-inserted into the system clipboard and pasted.  This is much quicker
-than typing character by character.
+The string encased between `⊂⊃` (`SUBSET OF` and `SUPERSET OF`
+characters) is inserted into the system's clipboard and pasted.  This
+is much quicker than typing character by character.
 
 ### Customizations
 
@@ -124,7 +124,7 @@ keyMeta = ⌘
 
 In the above, the
 [META](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_META)
-key alone is customized.  The Unicode character PLACE OF INTEREST
+key alone is customized.  The Unicode character `PLACE OF INTEREST`
 represents it.
 
 ### Speaking
