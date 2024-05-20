@@ -2,6 +2,8 @@ package com.lvijay.robotonous;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.awt.MouseInfo;
+import java.awt.Point;
 import java.awt.Robot;
 import java.awt.Toolkit;
 import java.io.PrintStream;
@@ -9,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import com.lvijay.robotonous.speak.AudioClient;
 import com.lvijay.robotonous.speak.MockAudioClient;
@@ -23,6 +26,25 @@ public class Main {
             thread.setDaemon(true);
             return thread;
         });
+
+        var failsafeThread = new Thread(() -> {
+            try {
+                while (true) {
+                    Point location = MouseInfo.getPointerInfo().getLocation();
+
+                    if (location.x == 0 && location.y == 0) {
+                        System.err.println("Failsafe triggered.  Exiting program.");
+                        System.exit(1);
+                    }
+
+                    TimeUnit.MILLISECONDS.sleep(500);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        failsafeThread.setDaemon(true);
+        failsafeThread.start();
 
         AudioClient audioClient;
         int idx = 0;
