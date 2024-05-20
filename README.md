@@ -98,7 +98,15 @@ in the table below.
 | pasteChord     | keyMeta + "v" | Defaults to the Mac OS X's ⌘v because that's the computer I'm using.  Customize to suit your OS.  Ideally, this should default itself in an OS dependent manner with customization support in contextual environments (GNU Emacs uses CTRL Y to paste, for eg.) PRs welcome. |
 
 Many keys, such as the arrow keys and function keys, are unrepresented
-and unsupported if only because a usecase was pending.  PRs welcome.
+and unsupported only because a usecase was pending.  PRs welcome.
+
+#### Sleeping
+
+Waiting is an inherent part of running automations.  To make life
+easier, Robotonous supports sleeping in incremenets of 100ms.  The
+Unicode characters ①, ②, ③ through to ㊿ sleep for 100ms, 200ms,
+300ms, all the way to 50 seconds.  (Unicode character names `CIRCLED
+DIGIT ONE`, `CIRCLED DIGIT TWO`, ..., `CIRCLED NUMBER FIFTY`.)
 
 #### Paste example
 An example of the paste action.
