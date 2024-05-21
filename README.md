@@ -96,6 +96,7 @@ in the table below.
 | keyBackspace   | ‹ | Represents the [Backspace key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_BACK_SPACE) |
 | keyDelete      | › | Represents the [Delete key](https://docs.oracle.com/en/java/javase/20/docs/api/java.desktop/java/awt/event/KeyEvent.html#VK_DELETE) |
 | pasteChord     | keyMeta + "v" | Defaults to the Mac OS X's ⌘v because that's the computer I'm using.  Customize to suit your OS.  Ideally, this should default itself in an OS dependent manner with customization support in contextual environments (GNU Emacs uses CTRL Y to paste, for eg.) PRs welcome. |
+| mouseMove | ∏∐ | Defines an x, y location to move the mouse to.  `∏100, 299∐` moves the mouse to position 100, 299.  The top left of the screen is `0, 0`.  X axis increases as you move right and Y axis increases as you go down the screen. See [Mouse Move Example](#mouse-move-example) to see it in action. |
 
 Many keys, such as the arrow keys and function keys, are unrepresented
 and unsupported only because a usecase was pending.  PRs welcome.
@@ -108,6 +109,8 @@ Unicode characters ①, ②, ③ through to ㊿ sleep for 100ms, 200ms,
 300ms, all the way to 50 seconds.  (Unicode character names `CIRCLED
 DIGIT ONE`, `CIRCLED DIGIT TWO`, ..., `CIRCLED NUMBER FIFTY`.)
 
+### Examples
+
 #### Paste example
 An example of the paste action.
 
@@ -116,6 +119,12 @@ An example of the paste action.
 The string encased between `⊂⊃` (`SUBSET OF` and `SUPERSET OF`
 characters) is inserted into the system's clipboard and pasted.  This
 is much quicker than typing character by character.
+
+#### Mouse Move example
+An example for moving the mouse.  The commands tell the mouse to move
+from `100, 100` to `200, 200` and so on.
+
+![mouse move](./docs/exampleMouseMove.gif)
 
 ### Customizations
 
