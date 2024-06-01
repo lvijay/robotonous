@@ -10,7 +10,7 @@ import pyperclip
 
 
 class Action:
-    def __call__(self):
+    def __call__(self) -> None:
         pass
 
 
@@ -18,7 +18,7 @@ class Action:
 class Typewrite(Action):
     text: str
 
-    def __call__(self):
+    def __call__(self) -> None:
         pyautogui.write(self.text)
 
 
@@ -27,7 +27,7 @@ class Withchord:
     key: str
     action: Action
 
-    def __call__(self):
+    def __call__(self) -> None:
         with pyautogui.hold(self.key):
             self.action()
 
@@ -36,16 +36,16 @@ class Withchord:
 class Presskey(Action):
     key: str
 
-    def __call__(self):
+    def __call__(self) -> None:
         for k in self.key:
-            pyautogui.press(self.k)
+            pyautogui.press(k)
 
 
 @dataclass
 class CopyPaste(Action):
     text: str
 
-    def __call__(self):
+    def __call__(self) -> None:
         pyperclip.copy(self.text)
         pyperclip.paste()
 
@@ -54,10 +54,19 @@ class CopyPaste(Action):
 class Sleep(Action):
     time: int
 
-    def __post_init__(self):
-        if isinstance(self.time, int):
-            return
-        c = self.time
+    def __call__(self) -> None:
+        pyautogui.sleep(self.time / 10)
+
+    @staticmethod
+    def is_sleep_char(c: str) -> bool:
+        return (
+            (c >= "①" and c <= "⑳")
+            or (c >= "㉑" and c <= "㉟")
+            or (c >= "㊱" and c <= "㊿")
+        )
+
+    @staticmethod
+    def make_sleep(c: str):
         if c >= "①" and c <= "⑳":
             diff = ord(c) - ord("①")
             v = diff + 1
@@ -68,19 +77,8 @@ class Sleep(Action):
             diff = ord(c) - ord("㊱")
             v = diff + 36
         else:
-            raise ValueError(f"Cannot understand {self.time}")
-        self.time = v
-
-    def __call__(self):
-        pyautogui.sleep(self.time / 10)
-
-    @staticmethod
-    def is_sleep_char(c: str) -> bool:
-        return (
-            (c >= "①" and c <= "⑳")
-            or (c >= "㉑" and c <= "㉟")
-            or (c >= "㊱" and c <= "㊿")
-        )
+            raise ValueError(f"Cannot understand value `{c}'")
+        return Sleep(v)
 
 
 def simplify(actions: list[Action]) -> list[Action]:
@@ -123,8 +121,8 @@ class PyroLex:
     mouse_left: str = "┫┛"
     mouse_right: str = "┣┗"
 
-    def parse(self, contents) -> list:
-        actions = []
+    def parse(self, contents: str) -> list[Action]:
+        actions: list[Action] = []
         mouseLeftActive = False
         mouseRightActive = False
         i = 0
@@ -166,7 +164,7 @@ class PyroLex:
             elif c == self.mouse_right[0] or c == self.mouse_right[1]:
                 pass
             elif Sleep.is_sleep_char(c):
-                actions.append(Sleep(c))
+                actions.append(Sleep.make_sleep(c))
             else:  # just type the damn thing
                 actions.append(Typewrite(c))
             i += 1
@@ -180,7 +178,7 @@ def parse(contents: str) -> list[Action]:
 
 def execute(steps: list[Action]) -> None:
     for step in steps:
-        steps()
+        step()
 
 
 if __name__ == "__main__":
