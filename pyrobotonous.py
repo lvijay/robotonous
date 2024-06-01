@@ -1,0 +1,192 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from dataclasses import dataclass
+from functools import reduce
+import re
+
+import pyautogui
+import pyperclip
+
+
+class Action:
+    def __call__(self):
+        pass
+
+
+@dataclass
+class Typewrite(Action):
+    text: str
+    def __call__(self):
+        pyautogui.write(self.text)
+
+
+@dataclass
+class Withchord:
+    key: str
+    action: Action
+    def __call__(self):
+        with pyautogui.hold(self.key):
+            self.action()
+
+
+@dataclass
+class Presskey(Action):
+    key: str
+    def __call__(self):
+        for k in self.key:
+            pyautogui.press(self.k)
+
+
+@dataclass
+class CopyPaste(Action):
+    text: str
+    def __call__(self):
+        pyperclip.copy(self.text)
+        pyperclip.paste()
+
+
+@dataclass
+class Sleep(Action):
+    time: int
+    def __post_init__(self):
+        if isinstance(self.time, int): return
+        c = self.time
+        if c >= '①' and c <= '⑳':
+            diff = ord(c) - ord('①')
+            v = diff + 1
+        elif c >= '㉑' and c <= '㉟':
+            diff = ord(c) - ord('㉑')
+            v = diff + 21
+        elif c >= '㊱' and c <= '㊿':
+            diff = ord(c) - ord('㊱')
+            v = diff + 36
+        else:
+            raise ValueError(f"Cannot understand {self.time}")
+        self.time = v
+    def __call__(self):
+        pyautogui.sleep(self.time / 10)
+    @staticmethod
+    def is_sleep_char(c: str) -> bool:
+        return (
+            c >= '①' and c <= '⑳'
+        ) or (
+            c >= '㉑' and c <= '㉟'
+        ) or (
+            c >= '㊱' and c <= '㊿'
+        )
+
+
+def simplify(actions: list[Action]) -> list[Action]:
+    # merge adjacent instances that are together
+    acc = [actions[0]]
+    typeflds = {
+        (Typewrite, 'text'), (Presskey, 'key'), (CopyPaste, 'text'),
+        (Sleep, 'time'),
+    }
+    types = {t for t, _ in typeflds}
+    for axn in actions[1:]:
+        prev = acc[-1]
+        if type(prev) == type(axn) and type(prev) in types:
+            typ, fld = next(((t, f) for t, f in typeflds if t == type(prev)))
+            oval = acc.pop().__dict__[fld]
+            nval = axn.__dict__[fld]
+            acc.append(typ(oval + nval))
+        else:
+            acc.append(axn)
+    return acc
+
+
+class PyroLex:
+    def __init__(
+            self, comment="©", chord="«»", copypaste="⊂⊃", newline="⏎", tab="␉",
+            escape="␛", backspace="‹", delete="›", arrow_left="←",
+            arrow_right="→", arrow_down="↓", arrow_up="↑", mouse_move="∏∐",
+            mouse_left="┫┛", mouse_right="┣┗"
+    ):
+        self.comment = comment
+        self.chord = chord
+        self.copypaste = copypaste
+        self.newline = newline
+        self.tab = tab
+        self.escape = escape
+        self.backspace = backspace
+        self.delete = delete
+        self.arrow_left = arrow_left
+        self.arrow_right = arrow_right
+        self.arrow_down = arrow_down
+        self.arrow_up = arrow_up
+        self.mouse_move = mouse_move
+        self.mouse_left = mouse_left
+        self.mouse_right = mouse_right
+
+    def parse(self, contents) -> list:
+        actions = []
+        mouseLeftActive = False
+        mouseRightActive = False
+        i = 0
+        while i < len(contents):
+            c = contents[i]
+            if c == self.comment:
+                eolidx = contents.find("\n", i)
+                i = eolidx
+            elif c == self.chord[0] or c == self.chord[1]:
+                pass
+            elif c == self.copypaste[0]:
+                i += 1
+                pastendidx = contents.find(self.copypaste[1], i)
+                pastestr = contents[i:pastendidx]
+                actions.append(CopyPaste(pastestr))
+                i = pastendidx
+            elif c == self.newline:
+                actions.append(Typewrite("\n"))
+            elif c == self.tab:
+                actions.append(Typewrite("\t"))
+            elif c == self.escape:
+                actions.append(Presskey(key="esc"))
+            elif c == self.backspace:
+                actions.append(Presskey(key="backspace"))
+            elif c == self.delete:
+                actions.append(Presskey(key="delete"))
+            elif c == self.arrow_left:
+                actions.append(Presskey(key="left"))
+            elif c == self.arrow_right:
+                actions.append(Presskey(key="right"))
+            elif c == self.arrow_down:
+                actions.append(Presskey(key="down"))
+            elif c == self.arrow_up:
+                actions.append(Presskey(key="up"))
+            elif c == self.mouse_move[0] or c == self.mouse_move[1]:
+                pass
+            elif c == self.mouse_left[0] or c == self.mouse_left[1]:
+                pass
+            elif c == self.mouse_right[0] or c == self.mouse_right[1]:
+                pass
+            elif Sleep.is_sleep_char(c):
+                actions.append(Sleep(c))
+            else: # just type the damn thing
+                actions.append(Typewrite(c))
+            i += 1
+        return simplify(actions)
+
+
+def parse(contents: str) -> list[Action]:
+    pl = PyroLex()              # TODO: header parsing
+    return pl.parse(contents)
+
+
+def execute(steps: list[Action]) -> None:
+    for step in steps:
+        steps()
+
+
+if __name__ == "__main__":
+    import sys
+
+    pyrofile = sys.argv[1]
+    with open(pyrofile, "r") as fin:
+        steps = parse(fin.read())
+    execute(steps)
+
+
+## pyrobotonous.py ends here
