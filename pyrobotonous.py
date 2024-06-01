@@ -17,6 +17,7 @@ class Action:
 @dataclass
 class Typewrite(Action):
     text: str
+
     def __call__(self):
         pyautogui.write(self.text)
 
@@ -25,6 +26,7 @@ class Typewrite(Action):
 class Withchord:
     key: str
     action: Action
+
     def __call__(self):
         with pyautogui.hold(self.key):
             self.action()
@@ -33,6 +35,7 @@ class Withchord:
 @dataclass
 class Presskey(Action):
     key: str
+
     def __call__(self):
         for k in self.key:
             pyautogui.press(self.k)
@@ -41,6 +44,7 @@ class Presskey(Action):
 @dataclass
 class CopyPaste(Action):
     text: str
+
     def __call__(self):
         pyperclip.copy(self.text)
         pyperclip.paste()
@@ -49,31 +53,33 @@ class CopyPaste(Action):
 @dataclass
 class Sleep(Action):
     time: int
+
     def __post_init__(self):
-        if isinstance(self.time, int): return
+        if isinstance(self.time, int):
+            return
         c = self.time
-        if c >= '①' and c <= '⑳':
-            diff = ord(c) - ord('①')
+        if c >= "①" and c <= "⑳":
+            diff = ord(c) - ord("①")
             v = diff + 1
-        elif c >= '㉑' and c <= '㉟':
-            diff = ord(c) - ord('㉑')
+        elif c >= "㉑" and c <= "㉟":
+            diff = ord(c) - ord("㉑")
             v = diff + 21
-        elif c >= '㊱' and c <= '㊿':
-            diff = ord(c) - ord('㊱')
+        elif c >= "㊱" and c <= "㊿":
+            diff = ord(c) - ord("㊱")
             v = diff + 36
         else:
             raise ValueError(f"Cannot understand {self.time}")
         self.time = v
+
     def __call__(self):
         pyautogui.sleep(self.time / 10)
+
     @staticmethod
     def is_sleep_char(c: str) -> bool:
         return (
-            c >= '①' and c <= '⑳'
-        ) or (
-            c >= '㉑' and c <= '㉟'
-        ) or (
-            c >= '㊱' and c <= '㊿'
+            (c >= "①" and c <= "⑳")
+            or (c >= "㉑" and c <= "㉟")
+            or (c >= "㊱" and c <= "㊿")
         )
 
 
@@ -81,8 +87,10 @@ def simplify(actions: list[Action]) -> list[Action]:
     # merge adjacent instances that are together
     acc = [actions[0]]
     typeflds = {
-        (Typewrite, 'text'), (Presskey, 'key'), (CopyPaste, 'text'),
-        (Sleep, 'time'),
+        (Typewrite, "text"),
+        (Presskey, "key"),
+        (CopyPaste, "text"),
+        (Sleep, "time"),
     }
     types = {t for t, _ in typeflds}
     for axn in actions[1:]:
@@ -97,28 +105,23 @@ def simplify(actions: list[Action]) -> list[Action]:
     return acc
 
 
+@dataclass
 class PyroLex:
-    def __init__(
-            self, comment="©", chord="«»", copypaste="⊂⊃", newline="⏎", tab="␉",
-            escape="␛", backspace="‹", delete="›", arrow_left="←",
-            arrow_right="→", arrow_down="↓", arrow_up="↑", mouse_move="∏∐",
-            mouse_left="┫┛", mouse_right="┣┗"
-    ):
-        self.comment = comment
-        self.chord = chord
-        self.copypaste = copypaste
-        self.newline = newline
-        self.tab = tab
-        self.escape = escape
-        self.backspace = backspace
-        self.delete = delete
-        self.arrow_left = arrow_left
-        self.arrow_right = arrow_right
-        self.arrow_down = arrow_down
-        self.arrow_up = arrow_up
-        self.mouse_move = mouse_move
-        self.mouse_left = mouse_left
-        self.mouse_right = mouse_right
+    comment: str = "©"
+    chord: str = "«»"
+    copypaste: str = "⊂⊃"
+    newline: str = "⏎"
+    tab: str = "␉"
+    escape: str = "␛"
+    backspace: str = "‹"
+    delete: str = "›"
+    arrow_left: str = "←"
+    arrow_right: str = "→"
+    arrow_down: str = "↓"
+    arrow_up: str = "↑"
+    mouse_move: str = "∏∐"
+    mouse_left: str = "┫┛"
+    mouse_right: str = "┣┗"
 
     def parse(self, contents) -> list:
         actions = []
@@ -164,14 +167,14 @@ class PyroLex:
                 pass
             elif Sleep.is_sleep_char(c):
                 actions.append(Sleep(c))
-            else: # just type the damn thing
+            else:  # just type the damn thing
                 actions.append(Typewrite(c))
             i += 1
         return simplify(actions)
 
 
 def parse(contents: str) -> list[Action]:
-    pl = PyroLex()              # TODO: header parsing
+    pl = PyroLex()  # TODO: header parsing
     return pl.parse(contents)
 
 
