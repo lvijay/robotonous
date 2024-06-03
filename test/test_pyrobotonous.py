@@ -17,5 +17,10 @@ def test_parse():
         Sleep(38),
     ]
 
+    chordparse = pl.parse("«ca:staway»")
+    assert chordparse == [
+        Chord(commands=["ctrl", "alt"], text="staway")
+    ]
+
 
 ## test_pyrobotonous.py ends here

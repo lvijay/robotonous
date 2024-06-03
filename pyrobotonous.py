@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import reduce
 import re
 
@@ -23,31 +23,41 @@ class Typewrite(Action):
 
 
 @dataclass
-class Withchord:
-    key: str
-    action: Action
+class Chord:
+    commands: str
+    text: str
 
     def __call__(self) -> None:
-        with pyautogui.hold(self.key):
-            self.action()
+        with pyautogui.hold(self.commands):
+            pyautogui.typewrite(self.text)
+
+    @staticmethod
+    def make_chord(commands, text):
+        cdict = {"c": "ctrl", "a": "alt", "s": "shift", "m": "command"}
+        cmds = [cdict[c] for c in commands]
+        return Chord(cmds, text)
 
 
 @dataclass
 class Presskey(Action):
-    key: str
+    key: list[str]
+
+    def __post_init__(self):
+        if type(self.key) == str:
+            self.key = [self.key]
 
     def __call__(self) -> None:
-        for k in self.key:
-            pyautogui.press(k)
+        pyautogui.press(self.key)
 
 
 @dataclass
 class CopyPaste(Action):
     text: str
+    paste_chord: Chord = field(default_factory=lambda: Chord.make_chord("m", "v"))
 
     def __call__(self) -> None:
         pyperclip.copy(self.text)
-        pyperclip.paste()
+        self.paste_chord()
 
 
 @dataclass
@@ -121,6 +131,19 @@ class PyroLex:
     mouse_left: str = "┫┛"
     mouse_right: str = "┣┗"
 
+    def __post_init__(self):
+        self.__extrakeymap: dict[str, Presskey | Typewrite] = {
+            self.newline:     Typewrite("\n"),
+            self.tab:         Typewrite("\t"),
+            self.escape:      Presskey(key="esc"),
+            self.backspace:   Presskey(key="backspace"),
+            self.delete:      Presskey(key="delete"),
+            self.arrow_left:  Presskey(key="left"),
+            self.arrow_right: Presskey(key="right"),
+            self.arrow_up:    Presskey(key="down"),
+            self.arrow_down:  Presskey(key="up"),
+        }
+
     def parse(self, contents: str) -> list[Action]:
         actions: list[Action] = []
         mouseLeftActive = False
@@ -131,32 +154,23 @@ class PyroLex:
             if c == self.comment:
                 eolidx = contents.find("\n", i)
                 i = eolidx
-            elif c == self.chord[0] or c == self.chord[1]:
-                pass
+            elif c == self.chord[0]:
+                i += 1
+                chordendidx = contents.find(self.chord[1], i)
+                chordstr = contents[i:chordendidx]
+                chordsepidx = chordstr.find(":")
+                chordcmds = chordstr[:chordsepidx]
+                chordtext = chordstr[chordsepidx+1:]
+                actions.append(Chord.make_chord(chordcmds, chordtext))
+                i = chordendidx
             elif c == self.copypaste[0]:
                 i += 1
                 pastendidx = contents.find(self.copypaste[1], i)
                 pastestr = contents[i:pastendidx]
                 actions.append(CopyPaste(pastestr))
                 i = pastendidx
-            elif c == self.newline:
-                actions.append(Typewrite("\n"))
-            elif c == self.tab:
-                actions.append(Typewrite("\t"))
-            elif c == self.escape:
-                actions.append(Presskey(key="esc"))
-            elif c == self.backspace:
-                actions.append(Presskey(key="backspace"))
-            elif c == self.delete:
-                actions.append(Presskey(key="delete"))
-            elif c == self.arrow_left:
-                actions.append(Presskey(key="left"))
-            elif c == self.arrow_right:
-                actions.append(Presskey(key="right"))
-            elif c == self.arrow_down:
-                actions.append(Presskey(key="down"))
-            elif c == self.arrow_up:
-                actions.append(Presskey(key="up"))
+            elif c in self.__extrakeymap.keys():
+                actions.append(self.__extrakeymap[c])
             elif c == self.mouse_move[0] or c == self.mouse_move[1]:
                 pass
             elif c == self.mouse_left[0] or c == self.mouse_left[1]:
