@@ -140,8 +140,8 @@ class PyroLex:
             self.delete:      Presskey(key="delete"),
             self.arrow_left:  Presskey(key="left"),
             self.arrow_right: Presskey(key="right"),
-            self.arrow_up:    Presskey(key="down"),
-            self.arrow_down:  Presskey(key="up"),
+            self.arrow_up:    Presskey(key="up"),
+            self.arrow_down:  Presskey(key="down"),
         }
 
     def parse(self, contents: str) -> list[Action]:

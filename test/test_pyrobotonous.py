@@ -1,5 +1,11 @@
 import pyrobotonous as pyr
-from pyrobotonous import Typewrite, Sleep, Presskey, CopyPaste
+from pyrobotonous import (
+    Chord,
+    CopyPaste,
+    Presskey,
+    Sleep,
+    Typewrite,
+)
 
 
 def test_simplify():
@@ -20,6 +26,11 @@ def test_parse():
     chordparse = pl.parse("«ca:staway»")
     assert chordparse == [
         Chord(commands=["ctrl", "alt"], text="staway")
+    ]
+
+    specialparse = pl.parse("⏎‹↓")
+    assert specialparse == [
+        Typewrite(text="\n"), Presskey(["backspace", "down"])
     ]
 
 
