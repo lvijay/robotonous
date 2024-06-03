@@ -24,14 +24,24 @@ def test_parse():
     ]
 
     chordparse = pl.parse("«ca:staway»")
-    assert chordparse == [
-        Chord(commands=["ctrl", "alt"], text="staway")
-    ]
+    assert chordparse == [Chord(commands=["ctrl", "alt"], text="staway")]
 
     specialparse = pl.parse("⏎‹↓")
     assert specialparse == [
-        Typewrite(text="\n"), Presskey(["backspace", "down"])
+        Typewrite(text="\n"),
+        Presskey(["backspace", "down"]),
     ]
+
+
+def test_parse_negative():
+    pl = pyr.PyroLex()
+    try:
+        pl.parse("hello,⊃ x")  # unexpected character
+        assert False
+    except ValueError as e:
+        assert e.args[0] == "Error at index 6, unknown char ⊃"
+
+    ## many other negative tests TBD
 
 
 ## test_pyrobotonous.py ends here

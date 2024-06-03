@@ -4,6 +4,7 @@
 from dataclasses import dataclass, field
 from functools import reduce
 import re
+import string
 
 import pyautogui
 import pyperclip
@@ -172,15 +173,17 @@ class PyroLex:
             elif c in self.__extrakeymap.keys():
                 actions.append(self.__extrakeymap[c])
             elif c == self.mouse_move[0] or c == self.mouse_move[1]:
-                pass
+                pass            # TODO
             elif c == self.mouse_left[0] or c == self.mouse_left[1]:
-                pass
+                pass            # TODO
             elif c == self.mouse_right[0] or c == self.mouse_right[1]:
-                pass
+                pass            # TODO
             elif Sleep.is_sleep_char(c):
                 actions.append(Sleep.make_sleep(c))
-            else:  # just type the damn thing
+            elif c in string.printable:
                 actions.append(Typewrite(c))
+            else:
+                raise ValueError(f"Error at index {i}, unknown char {c}")
             i += 1
         return simplify(actions)
 
